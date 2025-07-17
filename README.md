@@ -18,6 +18,7 @@ A gesture-based authentication system with a fallback email login feature, built
 ---
 
 ## ✅ Features
+
 - **Pattern Enrollment:** Users draw and save a gesture as their password.
 - **Pattern Login:** Authenticate by matching the stored gesture with high accuracy.
 - **Fallback Login:** Send a time-limited token to email for passwordless access.
@@ -26,11 +27,14 @@ A gesture-based authentication system with a fallback email login feature, built
 ---
 
 ## 🛠 Tech Stack
+
 **Frontend:**
+
 - React + react-canvas-draw for pattern capture
 - Axios for API calls
 
 **Backend:**
+
 - Node.js + Express
 - MongoDB (via Mongoose)
 - Nodemailer for sending fallback email
@@ -39,6 +43,7 @@ A gesture-based authentication system with a fallback email login feature, built
 ---
 
 ## 📂 Project Structure
+
 ```
 SecuARD/
 ├── LICENSE
@@ -69,12 +74,14 @@ SecuARD/
 ## ⚡ Setup & Installation
 
 ### 1. Clone the Repository
+
 ```sh
 git clone <repo-url>
 cd SecuARD
 ```
 
 ### 2. Backend Setup
+
 ```sh
 cd server
 npm install
@@ -82,6 +89,7 @@ npm install
 
 **Configure Environment**
 Create a `.env` file in `server/`:
+
 ```ini
 PORT=5000
 MONGO_URI=mongodb://127.0.0.1:27017/patternLogin
@@ -90,11 +98,13 @@ EMAIL_PASS=your_app_password   # Use Gmail App Password
 ```
 
 **Run server:**
+
 ```sh
 npm start
 ```
 
 ### 3. Frontend Setup
+
 ```sh
 cd ../pattern-login
 npm install
@@ -106,25 +116,28 @@ The frontend will be available at `http://localhost:5173` (default Vite port).
 ---
 
 ## 🔗 API Endpoints
-| Method | Endpoint              | Description                |
-|--------|----------------------|----------------------------|
-| POST   | /api/save-pattern    | Save user pattern          |
-| GET    | /api/get-pattern/:user | Get pattern for username |
-| POST   | /api/send-fallback   | Send fallback login email  |
-| POST   | /api/fallback-auth   | Validate token + pattern   |
+
+| Method | Endpoint               | Description               |
+| ------ | ---------------------- | ------------------------- |
+| POST   | /api/save-pattern      | Save user pattern         |
+| GET    | /api/get-pattern/:user | Get pattern for username  |
+| POST   | /api/send-fallback     | Send fallback login email |
+| POST   | /api/fallback-auth     | Validate token + pattern  |
 
 ---
 
 ## 🖼 Screenshots
+
 - Pattern Enrollment UI
 - Login Screen
 - Fallback Email Example
 
-*(Add images later)*
+_(Add images later)_
 
 ---
 
 ## ✅ Features Completed
+
 - ✔ Pattern enrollment & login
 - ✔ Fallback token generation
 - ✔ Email sending with token link
@@ -133,6 +146,7 @@ The frontend will be available at `http://localhost:5173` (default Vite port).
 ---
 
 ## 🚀 Upcoming
+
 - Mobile App (React Native + Skia)
 - JWT-based sessions
 - UI Polish & Responsive Design
@@ -141,4 +155,5 @@ The frontend will be available at `http://localhost:5173` (default Vite port).
 ---
 
 ## 📜 License
-MIT License © 2025 Lumine
+
+MIT License © 2025 Lumine8
