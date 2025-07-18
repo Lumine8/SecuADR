@@ -1,4 +1,6 @@
-# 🔐 Pattern-Based Authentication System
+# ![SecuADR Logo](pattern-login/src/assets/secuadr-logo.png)
+
+# SecuADR
 
 ![MIT License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Node.js](https://img.shields.io/badge/Backend-Node.js-brightgreen)
