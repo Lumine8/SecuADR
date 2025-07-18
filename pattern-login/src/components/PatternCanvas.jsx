@@ -2,6 +2,9 @@ import React, { useRef, useState, useEffect } from "react";
 import CanvasDraw from "react-canvas-draw";
 import axios from "axios";
 import DollarRecognizer, { Point } from "../utils/dollarOneRecognizer";
+import "./PatternCanvas.scss"; // Import SCSS
+import logo from "../assets/logoRmvBg.png";
+// import designLogo from "../assets/mainlogo.png";
 
 function PatternCanvas() {
   const canvasRef = useRef(null);
@@ -12,7 +15,7 @@ function PatternCanvas() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
 
-  // Load stored pattern (optional, for smoother login)
+  // Load stored pattern (optional)
   useEffect(() => {
     const saved = localStorage.getItem("loginPattern");
     if (saved) {
@@ -25,7 +28,7 @@ function PatternCanvas() {
 
   const triggerFade = () => {
     setFade(false);
-    setTimeout(() => setFade(true), 1000);
+    setTimeout(() => setFade(true), 500);
   };
 
   const extractPointsFromCanvas = () => {
@@ -111,58 +114,57 @@ function PatternCanvas() {
   };
 
   return (
-    <div style={{ marginTop: "1rem", maxWidth: 500, margin: "auto" }}>
-      <h2>{mode === "enroll" ? "Enroll Pattern" : "Login with Pattern"}</h2>
+    <div className="pattern-container">
+      <img src={logo} alt="Logo" className="logo" style={{ width: "40%" }} />
+      <div className="pattern-card">
+        <h2>{mode === "enroll" ? "Enroll Pattern" : "Login with Pattern"}</h2>
 
-      <input
-        type="text"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        placeholder="Enter username"
-        style={{ marginBottom: "0.5rem", padding: "6px", width: "100%" }}
-      />
-
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Enter email (for fallback)"
-        style={{ marginBottom: "1rem", padding: "6px", width: "100%" }}
-      />
-
-      <div className={fade ? "fade-out" : ""}>
-        <CanvasDraw
-          ref={canvasRef}
-          canvasWidth={300}
-          canvasHeight={300}
-          brushRadius={2}
-          brushColor="#007bff"
-          lazyRadius={1}
-          hideGrid
-          style={{ border: "1px solid #ccc", borderRadius: "10px" }}
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Enter username"
         />
-      </div>
 
-      <div style={{ marginTop: "1rem" }}>
-        <button
-          onClick={mode === "enroll" ? enrollPattern : matchPattern}
-          style={{ marginRight: "0.5rem" }}
-        >
-          {mode === "enroll" ? "Enroll" : "Login"}
-        </button>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter email (for fallback)"
+        />
 
-        <button onClick={handleClear} style={{ marginRight: "0.5rem" }}>
-          Clear
-        </button>
+        <div className={`canvas-wrapper ${fade ? "fade-out" : ""}`}>
+          <CanvasDraw
+            ref={canvasRef}
+            canvasWidth={300}
+            canvasHeight={300}
+            brushRadius={2}
+            brushColor="#007bff"
+            lazyRadius={1}
+            hideGrid
+          />
+        </div>
 
-        <button
-          onClick={() => setMode(mode === "enroll" ? "login" : "enroll")}
-          style={{ marginRight: "0.5rem" }}
-        >
-          Switch to {mode === "enroll" ? "Login" : "Enroll"}
-        </button>
+        <div className="button-group">
+          <button
+            className="primary-btn"
+            onClick={mode === "enroll" ? enrollPattern : matchPattern}
+          >
+            {mode === "enroll" ? "Enroll" : "Login"}
+          </button>
 
-        <button onClick={sendFallbackLink}>Send Fallback Email</button>
+          <button onClick={handleClear}>Clear</button>
+
+          <button
+            onClick={() => setMode(mode === "enroll" ? "login" : "enroll")}
+          >
+            Switch to {mode === "enroll" ? "Login" : "Enroll"}
+          </button>
+
+          <button className="secondary-btn" onClick={sendFallbackLink}>
+            Send Fallback Email
+          </button>
+        </div>
       </div>
     </div>
   );
