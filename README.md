@@ -158,4 +158,9 @@ _(Add images later)_
 
 ## 📜 License
 
-This software is the exclusive property of Lumine8. Any use, copying, modification, or distribution requires express written permission from the author. See the LICENSE file for full terms.
+SecuADR is dual-licensed:
+
+- **Proprietary License (Default):** This repository and its contents are the exclusive property of Lumine8. Any use, modification, or distribution without prior written permission is strictly prohibited.
+- **MIT License:** Select components, utilities, or future OSS contributions may be licensed under MIT for open-source use. See [LICENSE-OSS.txt](./LICENSE-OSS.txt) for details.
+
+For commercial or extended usage rights, please contact: sankargopan1@gmail.com
