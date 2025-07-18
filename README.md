@@ -1,4 +1,4 @@
-# ![SecuADR Logo](pattern-login/src/assets/logoRmvBg.png)
+# ![SecuADR Logo](pattern-login/src/assets/logo.png)
 
 # SecuADR
 
