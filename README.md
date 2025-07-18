@@ -2,7 +2,7 @@
 
 # SecuADR
 
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Exclusive License](https://img.shields.io/badge/license-Exclusive--Use-important)
 ![Node.js](https://img.shields.io/badge/Backend-Node.js-brightgreen)
 ![Express](https://img.shields.io/badge/Framework-Express-blue)
 ![MongoDB](https://img.shields.io/badge/Database-MongoDB-green)
