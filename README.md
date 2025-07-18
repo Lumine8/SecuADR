@@ -156,6 +156,16 @@ _(Add images later)_
 
 ---
 
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines. All contributions require prior written permission. Please open an issue to discuss proposals before submitting pull requests.
+
+## 🛡 Security
+
+If you discover a vulnerability, please follow the process in [SECURITY.md](./SECURITY.md). Do not open public issues for security matters—email sankargopan1@gmail.com for responsible disclosure.
+
+---
+
 ## 📜 License
 
 SecuADR is dual-licensed:
