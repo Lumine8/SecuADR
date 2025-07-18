@@ -158,4 +158,4 @@ _(Add images later)_
 
 ## 📜 License
 
-MIT License © 2025 Lumine8
+This software is the exclusive property of Lumine8. Any use, copying, modification, or distribution requires express written permission from the author. See the LICENSE file for full terms.
