@@ -130,7 +130,7 @@ The frontend will be available at `http://localhost:5173` (default Vite port).
 
 ## 🖼 Screenshots
 
-![SecuADR Mockup Application](pattern-login/src/assets/mockup-screenshot.png)
+![SecuADR Mockup Application](pattern-login/src/assets/SecuADR.png)
 
 - Pattern Enrollment UI
 - Login Screen
