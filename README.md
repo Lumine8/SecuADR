@@ -136,8 +136,6 @@ The frontend will be available at `http://localhost:5173` (default Vite port).
 - Login Screen
 - Fallback Email Example
 
-_(Add images later)_
-
 ---
 
 ## ✅ Features Completed
