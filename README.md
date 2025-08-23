@@ -34,6 +34,7 @@ A gesture-based authentication system with a fallback email login feature, built
 
 - React + react-canvas-draw for pattern capture
 - Axios for API calls
+- React Native (Expo) for mobile
 
 **Backend:**
 
@@ -41,6 +42,12 @@ A gesture-based authentication system with a fallback email login feature, built
 - MongoDB (via Mongoose)
 - Nodemailer for sending fallback email
 - Dollar One Recognizer algorithm for gesture matching
+
+**Mobile:**
+
+- React Native (Expo)
+- TypeScript
+- $1 Recognizer (custom implementation)
 
 ---
 
@@ -68,6 +75,8 @@ SecuARD/
 │   ├── utils/mailer.js           # Nodemailer config
 │   ├── index.js                  # Server entry point
 │   └── .env                      # Env variables
+├── secuadr-app/           # React Native mobile app
+│   └── app/_layout.tsx    # Main Expo app file
 └── ...
 ```
 
@@ -135,6 +144,18 @@ The frontend will be available at `http://localhost:5173` (default Vite port).
 - Pattern Enrollment UI
 - Login Screen
 - Fallback Email Example
+
+---
+
+## 📱 Mobile App
+
+A React Native/Expo mobile app is available in `secuadr-app/`. It features:
+
+- Pattern enrollment and login using touch gestures
+- $1 Recognizer implementation in TypeScript
+- Navigation between Register and Login screens
+
+See `secuadr-app/app/_layout.tsx` for the main app logic.
 
 ---
 
