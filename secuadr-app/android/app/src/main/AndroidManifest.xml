@@ -25,6 +25,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="secuadrapp"/>
+        <data android:scheme="exp+secuadr-app"/>
       </intent-filter>
     </activity>
   </application>
