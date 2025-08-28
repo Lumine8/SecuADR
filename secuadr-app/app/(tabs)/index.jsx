@@ -1,12 +1,18 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, Button, StyleSheet, Image } from "react-native";
+import { useRouter } from "expo-router";
+// import secuADR from "../../assets/images/logoRmvBg.png";
 
-export default function HomeScreen() {
+export default function Home() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to SecuADR 🔐</Text>
-      <Text style={styles.subtitle}>
-        Your secure gesture-based authentication app.
-      </Text>
+      <Image
+        source={require("../../assets/images/logoRmvBg.png")}
+        style={styles.logo}
+      />
+      <Text style={styles.title}>Welcome to SecuADR</Text>
+      <Button title="Go to Pattern" onPress={() => router.push("/pattern")} />
     </View>
   );
 }
@@ -16,18 +22,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#f9fafb", // light background
+    backgroundColor: "#fff",
+  },
+  logo: {
+    width: 200,
+    height: 200,
+    marginBottom: 20,
+    resizeMode: "contain",
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#111827", // dark text
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#4b5563", // gray text
-    textAlign: "center",
+    fontSize: 20,
+    marginBottom: 20,
   },
 });
