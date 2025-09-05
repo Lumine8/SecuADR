@@ -46,7 +46,6 @@ A gesture-based authentication system with a fallback email login feature, built
 **Mobile:**
 
 - React Native (Expo)
-- TypeScript
 - $1 Recognizer (custom implementation)
 
 ---
