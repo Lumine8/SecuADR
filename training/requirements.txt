@@ -1,0 +1,7 @@
+tensorflow
+tensorflowjs
+scikit-learn
+matplotlib
+numpy
+pymongo
+python-dotenv

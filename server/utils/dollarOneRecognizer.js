@@ -18,7 +18,9 @@ function DollarRecognizer() {
   };
 
   this.Recognize = function (points) {
-    if (!points || points.length < 5) return new Result("No match", 0.0);
+    if (!points || points.length < 5) {
+      return new Result("No match", 0.0);
+    }
 
     points = Resample(points, 32);
     points = Scale(points);
@@ -51,7 +53,7 @@ function PointCloud(name, points) {
 const Origin = new Point(0, 0, 0);
 
 function GreedyCloudMatch(points, P) {
-  const e = 0.50;
+  const e = 0.5;
   const step = Math.floor(Math.pow(points.length, 1 - e));
   let min = +Infinity;
 
@@ -102,8 +104,10 @@ function Resample(points, n) {
     if (points[i].ID === points[i - 1].ID) {
       const d = Distance(points[i - 1], points[i]);
       if (D + d >= I) {
-        const qx = points[i - 1].X + ((I - D) / d) * (points[i].X - points[i - 1].X);
-        const qy = points[i - 1].Y + ((I - D) / d) * (points[i].Y - points[i - 1].Y);
+        const qx =
+          points[i - 1].X + ((I - D) / d) * (points[i].X - points[i - 1].X);
+        const qy =
+          points[i - 1].Y + ((I - D) / d) * (points[i].Y - points[i - 1].Y);
         const q = new Point(qx, qy, points[i].ID);
         newPoints.push(q);
         points.splice(i, 0, q);
@@ -122,7 +126,10 @@ function Resample(points, n) {
 }
 
 function Scale(points) {
-  let minX = +Infinity, maxX = -Infinity, minY = +Infinity, maxY = -Infinity;
+  let minX = +Infinity,
+    maxX = -Infinity;
+  let minY = +Infinity,
+    maxY = -Infinity;
 
   for (let pt of points) {
     minX = Math.min(minX, pt.X);
@@ -143,7 +150,8 @@ function TranslateTo(points, pt) {
 }
 
 function Centroid(points) {
-  let x = 0.0, y = 0.0;
+  let x = 0.0,
+    y = 0.0;
   for (let pt of points) {
     x += pt.X;
     y += pt.Y;

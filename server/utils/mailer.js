@@ -1,31 +1,48 @@
-// utils/mailer.js
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  service: "gmail", // or 'hotmail', etc.
+  service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER, // e.g., yourapp@gmail.com
-    pass: process.env.EMAIL_PASS, // app password or real password (use env)
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
 async function sendFallbackEmail(to, token) {
-  const link = `http://localhost:5173/fallback/${token}`;
+  // Use environment variable for client URL
+  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  const link = `${clientUrl}/fallback/${token}`;
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to,
-    subject: "Your Fallback Login Link",
-    html: `<p>Click the link below to draw your pattern and log in:</p>
-           <a href="${link}">${link}</a><br/>
-           <p>This link expires in 10 minutes.</p>`,
+    subject: "SecuADR - Your Fallback Authentication Link",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">SecuADR Fallback Authentication</h2>
+        <p>You requested a fallback authentication link for your SecuADR account.</p>
+        <p>Click the link below to draw your pattern and log in:</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${link}" 
+             style="background-color: #007bff; color: white; padding: 12px 24px; 
+                    text-decoration: none; border-radius: 5px; display: inline-block;">
+            Access SecuADR
+          </a>
+        </div>
+        <p><strong>Important:</strong> This link expires in 10 minutes for security.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="color: #666; font-size: 12px;">SecuADR - Secure Gesture Authentication</p>
+      </div>
+    `,
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent:", info.response);
+    console.log("📧 Email sent successfully:", info.messageId);
     return true;
   } catch (err) {
-    console.error("Email send failed:", err);
+    console.error("❌ Email send failed:", err);
     return false;
   }
 }
