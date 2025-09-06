@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const Pattern = require("../models/Pattern");
+const admin = require("../firebase"); // Firebase Admin SDK
 
-// Enhanced intelligent authentication engine with adaptive learning
+// Enhanced intelligent authentication engine with Firebase integration
 router.post("/", async (req, res) => {
   try {
     const { cnnConfidence, dollarScore, username, metadata } = req.body;
@@ -14,7 +15,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // ✅ Reliable adaptive thresholds (no async dependencies)
+    // 🧠 Adaptive thresholds based on user history and context
     const thresholds = getAdaptiveThresholds(username, metadata);
 
     // 🎯 Multiple authentication paths for better success rates
@@ -74,21 +75,68 @@ router.post("/", async (req, res) => {
       method,
       score: (finalScore * 100).toFixed(1) + "%",
       decision: success ? "✅ ACCEPT" : "❌ REJECT",
-      thresholds: thresholds, // ✅ Now shows actual values
+      thresholds: thresholds,
     });
 
-    res.json({
-      success: success,
-      finalScore: finalScore,
-      method: method,
-      details: `CNN: ${(cnnConfidence * 100).toFixed(1)}%, $1: ${(
-        dollarScore * 100
-      ).toFixed(1)}%`,
-      improvementTips: success
-        ? []
-        : generateImprovementTips(cnnConfidence, dollarScore, metadata),
-      threshold: thresholds.hybrid, // ✅ Now defined
-    });
+    if (success) {
+      try {
+        // 🔥 Create Firebase custom token upon successful SecuADR auth
+        const firebaseToken = await admin.auth().createCustomToken(username, {
+          secuAdrAuth: true,
+          authMethod: method,
+          confidence: finalScore,
+          authTime: Date.now(),
+          deviceFingerprint:
+            metadata?.deviceFingerprint?.userAgent || "unknown",
+        });
+
+        console.log(`🔥 Firebase token created for ${username}`);
+
+        res.json({
+          success: true,
+          finalScore: finalScore,
+          method: method,
+          details: `CNN: ${((cnnConfidence || 0) * 100).toFixed(1)}%, $1: ${(
+            (dollarScore || 0) * 100
+          ).toFixed(1)}%`,
+          firebaseToken: firebaseToken, // ✅ Include Firebase token
+          threshold: thresholds.hybrid,
+          improvementTips: [],
+          userId: username,
+          authTime: Date.now(),
+        });
+      } catch (firebaseError) {
+        console.error("❌ Firebase token creation error:", firebaseError);
+        // Still return success for SecuADR, but without Firebase token
+        res.json({
+          success: true,
+          finalScore: finalScore,
+          method: method,
+          details: `CNN: ${((cnnConfidence || 0) * 100).toFixed(1)}%, $1: ${(
+            (dollarScore || 0) * 100
+          ).toFixed(1)}%`,
+          threshold: thresholds.hybrid,
+          improvementTips: [],
+          warning: "Firebase integration unavailable",
+        });
+      }
+    } else {
+      res.json({
+        success: false,
+        finalScore: finalScore,
+        method: method,
+        details: `CNN: ${((cnnConfidence || 0) * 100).toFixed(1)}%, $1: ${(
+          (dollarScore || 0) * 100
+        ).toFixed(1)}%`,
+        improvementTips: generateImprovementTips(
+          cnnConfidence,
+          dollarScore,
+          metadata
+        ),
+        threshold: thresholds.hybrid,
+        authTime: Date.now(),
+      });
+    }
   } catch (error) {
     console.error("❌ Authentication engine error:", error);
     res.status(500).json({
@@ -129,7 +177,9 @@ function getAdaptiveThresholds(username, metadata) {
 
 // 🎯 Context-aware scoring with bonuses
 function calculateContextualScore(cnn, dollar, metadata) {
-  let baseScore = cnn * 0.6 + dollar * 0.4;
+  const safeCnn = cnn || 0;
+  const safeDollar = dollar || 0;
+  let baseScore = safeCnn * 0.6 + safeDollar * 0.4;
 
   // Drawing quality bonuses
   if (metadata?.drawingTime > 1000 && metadata?.drawingTime < 8000) {
@@ -179,11 +229,11 @@ function calculateDynamicScore(cnn, dollar, metadata) {
 function generateImprovementTips(cnn, dollar, metadata) {
   const tips = [];
 
-  if (cnn < 0.6) {
+  if ((cnn || 0) < 0.6) {
     tips.push("🎨 Try drawing more smoothly and consistently");
   }
 
-  if (dollar < 0.7) {
+  if ((dollar || 0) < 0.7) {
     tips.push("📐 Focus on maintaining the geometric shape");
   }
 
