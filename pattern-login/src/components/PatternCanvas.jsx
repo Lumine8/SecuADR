@@ -32,27 +32,31 @@ function PatternCanvas() {
       try {
         console.log("🔍 PatternCanvas: Checking CNN status...");
 
-        // FIXED: Use port 3000 and correct endpoint /api/v1/health
+        // FIXED: Use port 5000 and correct endpoint structure
         const response = await axios.get(
-          `http://localhost:5000/api/v1/health?t=${Date.now()}`,
+          `http://localhost:5000/api/cnn-status?t=${Date.now()}`,
           {
             headers: {
               "Cache-Control": "no-cache, no-store, must-revalidate",
               Pragma: "no-cache",
               Expires: "0",
             },
+            timeout: 5000,
           }
         );
 
         console.log("🔍 PatternCanvas: CNN Status Response:", response.data);
 
-        // Check for correct response structure
+        // Check for correct response structure based on your server logs
         if (
-          response.data.status === "healthy" &&
-          response.data.ai_engine === "CNN Model Leading"
+          response.data.mode === "cnn_leading_adaptive_ai" &&
+          response.data.available === "connected"
         ) {
           console.log("✅ PatternCanvas: CNN is available and loaded");
           setServerCnnStatus("available");
+        } else if (response.data.available === "connected") {
+          console.log("⚠️ PatternCanvas: AI available but in fallback mode");
+          setServerCnnStatus("fallback");
         } else {
           console.log("⚠️ PatternCanvas: CNN not available, using fallback");
           setServerCnnStatus("fallback");
@@ -65,17 +69,22 @@ function PatternCanvas() {
 
     checkServerCNN();
 
-    // Poll for status updates every 3 seconds
-    const statusInterval = setInterval(checkServerCNN, 3000);
+    // Poll for status updates every 5 seconds (reduced frequency)
+    const statusInterval = setInterval(checkServerCNN, 5000);
 
     // Load stored pattern
     const saved = localStorage.getItem("loginPattern");
     if (saved) {
-      const parsed = JSON.parse(saved).map(
-        (pt) => new Point(pt.X, pt.Y, pt.ID ?? 0)
-      );
-      recognizer.current.AddGesture("LoginPattern", parsed);
-      console.log("✅ Loaded stored pattern from localStorage");
+      try {
+        const parsed = JSON.parse(saved).map(
+          (pt) => new Point(pt.X, pt.Y, pt.ID ?? 0)
+        );
+        recognizer.current.AddGesture("LoginPattern", parsed);
+        console.log("✅ Loaded stored pattern from localStorage");
+      } catch (error) {
+        console.error("❌ Failed to load stored pattern:", error);
+        localStorage.removeItem("loginPattern");
+      }
     }
 
     return () => clearInterval(statusInterval);
@@ -120,10 +129,15 @@ function PatternCanvas() {
   };
 
   const extractPointsFromCanvas = () => {
-    const raw = JSON.parse(canvasRef.current.getSaveData());
-    return raw.lines.flatMap((line) =>
-      line.points.map((pt) => new Point(pt.x, pt.y, 0))
-    );
+    try {
+      const raw = JSON.parse(canvasRef.current.getSaveData());
+      return raw.lines.flatMap((line) =>
+        line.points.map((pt) => new Point(pt.x, pt.y, 0))
+      );
+    } catch (error) {
+      console.error("❌ Failed to extract points from canvas:", error);
+      return [];
+    }
   };
 
   const enrollPattern = async () => {
@@ -147,9 +161,9 @@ function PatternCanvas() {
     try {
       setLoading(true);
 
-      // Use correct API endpoint with port 3000
+      // FIXED: Use correct port 5000 and API endpoint
       const response = await axios.post(
-        "http://localhost:3000/api/v1/patterns/enroll",
+        "http://localhost:5000/api/save-pattern",
         {
           username,
           pattern: plainPoints,
@@ -162,25 +176,30 @@ function PatternCanvas() {
             deviceFingerprint: getDeviceFingerprint(),
             sessionId,
           },
-        }
+        },
+        { timeout: 10000 }
       );
 
       if (response.data.success) {
         const sampleCount = response.data.sampleCount || 1;
-        alert(`✅ Pattern enrolled! You have ${sampleCount} samples.`);
+        alert(
+          `✅ Pattern enrolled successfully! You have ${sampleCount} samples.`
+        );
         localStorage.setItem("loginPattern", JSON.stringify(plainPoints));
         recognizer.current.AddGesture("LoginPattern", rawPoints);
         triggerFade();
       } else {
-        alert("❌ Failed to enroll pattern");
+        alert(
+          `❌ Failed to enroll pattern: ${
+            response.data.message || "Unknown error"
+          }`
+        );
       }
     } catch (err) {
       console.error("❌ Enrollment error:", err);
-      alert(
-        `❌ Failed to enroll pattern: ${
-          err.response?.data?.message || err.message
-        }`
-      );
+      const errorMessage =
+        err.response?.data?.message || err.message || "Network error";
+      alert(`❌ Failed to enroll pattern: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -195,7 +214,12 @@ function PatternCanvas() {
     }
 
     if (drawnPoints.length < 5) {
-      alert("❌ Please draw a more complex pattern");
+      alert("❌ Please draw a more complex pattern (minimum 5 points)");
+      return;
+    }
+
+    if (!username.trim()) {
+      alert("❌ Please enter your username");
       return;
     }
 
@@ -204,32 +228,58 @@ function PatternCanvas() {
     try {
       console.log("🧠 Using SecuADR API for authentication...");
 
-      // Use AuthService which now has the correct endpoints
-      const result = await AuthService.quickAuthenticate(drawnPoints);
+      // FIXED: Use correct port 5000 and API endpoint
+      const result = await axios.post(
+        "http://localhost:5000/api/authenticate",
+        {
+          username,
+          pattern: drawnPoints.map((pt) => ({ X: pt.X, Y: pt.Y, ID: pt.ID })),
+          sessionId,
+          deviceFingerprint: getDeviceFingerprint(),
+        },
+        { timeout: 10000 }
+      );
 
-      if (result.success && result.data.success) {
-        const confidence = Math.round(result.data.confidence * 100);
+      if (result.data.success && result.data.authenticated) {
+        const confidence = Math.round((result.data.confidence || 0) * 100);
         const method = result.data.method || "AI Pattern Analysis";
 
         // Update history
         const historyEntry = {
           timestamp: new Date().toLocaleTimeString(),
           method: method,
-          score: result.data.confidence,
+          score: result.data.confidence || 0,
           result: "SUCCESS",
         };
         setAuthHistory((prev) => [historyEntry, ...prev.slice(0, 4)]);
 
         alert(
-          `✅ Authenticated!\nMethod: ${method}\nConfidence: ${confidence}%`
+          `✅ Authentication successful!\nMethod: ${method}\nConfidence: ${confidence}%`
         );
         triggerFade();
+
+        // Clear improvement tips on success
+        setImprovementTips([]);
       } else {
-        alert(`❌ Authentication failed.\nTry drawing a more unique pattern.`);
+        // Add improvement tips on failure
+        setImprovementTips([
+          "Try drawing your pattern more slowly",
+          "Ensure your pattern has distinct angles and curves",
+          "Draw with consistent pressure and speed",
+          "Make sure your pattern is large enough to capture details",
+        ]);
+
+        alert(
+          `❌ Authentication failed.\n${
+            result.data.message || "Pattern not recognized. Try again!"
+          }`
+        );
       }
     } catch (error) {
       console.error("💥 Authentication error:", error);
-      alert(`❌ Authentication error: ${error.message}`);
+      const errorMessage =
+        error.response?.data?.message || error.message || "Network error";
+      alert(`❌ Authentication error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -243,22 +293,31 @@ function PatternCanvas() {
 
     try {
       setLoading(true);
+
+      // FIXED: Use correct port 5000 and API endpoint
       const res = await axios.post(
-        "http://localhost:3000/api/v1/send-fallback",
+        "http://localhost:5000/api/fallback",
         {
           username,
           email,
-        }
+        },
+        { timeout: 10000 }
       );
 
       if (res.data.success) {
         alert("✅ Fallback authentication link sent to your email!");
       } else {
-        alert("❌ Failed to send fallback link");
+        alert(
+          `❌ Failed to send fallback link: ${
+            res.data.message || "Unknown error"
+          }`
+        );
       }
     } catch (err) {
       console.error("❌ Fallback link error:", err);
-      alert("❌ Server error - could not send fallback link");
+      const errorMessage =
+        err.response?.data?.message || err.message || "Network error";
+      alert(`❌ Server error - could not send fallback link: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
