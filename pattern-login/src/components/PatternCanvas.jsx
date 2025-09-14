@@ -34,7 +34,7 @@ function PatternCanvas() {
 
         // FIXED: Use port 3000 and correct endpoint /api/v1/health
         const response = await axios.get(
-          `http://localhost:3000/api/v1/health?t=${Date.now()}`,
+          `http://localhost:5000/api/v1/health?t=${Date.now()}`,
           {
             headers: {
               "Cache-Control": "no-cache, no-store, must-revalidate",
