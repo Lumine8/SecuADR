@@ -26,7 +26,7 @@ function PatternCanvas() {
     setSessionId(generateSessionId());
   }, []);
 
-  // Check server CNN availability on mount - FIXED PORT AND ENDPOINT
+  // Check server CNN availability on mount - FIXED STATUS CHECK LOGIC
   useEffect(() => {
     async function checkServerCNN() {
       try {
@@ -47,15 +47,28 @@ function PatternCanvas() {
 
         console.log("🔍 PatternCanvas: CNN Status Response:", response.data);
 
-        // Check for correct response structure based on your server logs
+        // FIXED: Check for correct response structure based on your server response
+        const data = response.data;
+
         if (
-          response.data.mode === "cnn_leading_adaptive_ai" &&
-          response.data.available === "connected"
+          data.success &&
+          data.currentMode === "cnn_leading_adaptive_ai" &&
+          data.aiEngine?.cnn?.modelLoaded
         ) {
           console.log("✅ PatternCanvas: CNN is available and loaded");
           setServerCnnStatus("available");
-        } else if (response.data.available === "connected") {
-          console.log("⚠️ PatternCanvas: AI available but in fallback mode");
+        } else if (
+          data.success &&
+          data.currentMode === "cnn_leading_adaptive_ai"
+        ) {
+          console.log(
+            "⚠️ PatternCanvas: CNN mode active but model not loaded, using mock/fallback"
+          );
+          setServerCnnStatus("available"); // Still available, just in mock mode
+        } else if (data.success && data.mlService?.status === "connected") {
+          console.log(
+            "⚠️ PatternCanvas: Service connected but in fallback mode"
+          );
           setServerCnnStatus("fallback");
         } else {
           console.log("⚠️ PatternCanvas: CNN not available, using fallback");

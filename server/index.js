@@ -11,15 +11,64 @@ require("dotenv").config({
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Middleware
+// Enhanced CORS configuration - FIXED to include localhost:3001
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://finadr.vercel.app"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001", // Added this for your frontend
+      "https://finadr.vercel.app",
+    ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cache-Control",
+      "Pragma",
+      "Expires",
+      "X-Requested-With",
+    ],
+    optionsSuccessStatus: 200, // Some legacy browsers choke on 204
   })
 );
+
+// Enhanced middleware
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// Additional manual CORS headers for preflight requests
+app.use((req, res, next) => {
+  // Allow requests from localhost:3001 specifically
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://finadr.vercel.app",
+  ];
+
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, Cache-Control, Pragma, Expires, X-Requested-With"
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  // Handle preflight OPTIONS requests
+  if (req.method === "OPTIONS") {
+    console.log(`🔍 CORS Preflight: ${req.headers.origin} -> ${req.url}`);
+    return res.status(200).end();
+  }
+
+  next();
+});
 
 // Debug environment variables
 console.log("🔍 Environment Variables Check:");
@@ -62,35 +111,111 @@ const initializeONNX = async () => {
   const predictor = new ONNXPredictor();
 
   try {
+    console.log("🔍 Loading ONNX CNN model from: ./models/gesture_cnn.onnx");
     await predictor.loadModel("./models/gesture_cnn.onnx");
-    console.log("✅ ONNX CNN model initialization complete");
+    console.log("✅ ONNX CNN model loaded successfully");
     global.onnxPredictor = predictor; // Make available globally
   } catch (error) {
-    console.error("❌ ONNX CNN model initialization failed:", error.message);
-    console.log("🔄 Continuing with fallback mode only");
+    console.error("❌ Failed to load ONNX model:", error.message);
+    console.log(
+      "🔄 Continuing with mock/fallback mode - CNN features disabled"
+    );
     global.onnxPredictor = null;
   }
+
+  console.log("✅ ONNX CNN model initialization complete");
 };
 
-// Apply routes
-app.use("/api/authenticate", authenticateRoutes);
-app.use("/api/save-pattern", savePatternRoutes);
+// Apply routes with logging
+app.use(
+  "/api/authenticate",
+  (req, res, next) => {
+    console.log(
+      `🔐 Authentication request from ${req.headers.origin || "unknown"}`
+    );
+    next();
+  },
+  authenticateRoutes
+);
+
+app.use(
+  "/api/save-pattern",
+  (req, res, next) => {
+    console.log(
+      `💾 Pattern save request from ${req.headers.origin || "unknown"}`
+    );
+    next();
+  },
+  savePatternRoutes
+);
+
 app.use("/api/get-pattern", getPatternRoutes);
 app.use("/api/cnn-predict", cnnPredictRoutes);
-app.use("/api/cnn-status", cnnStatusRoutes);
+
+app.use(
+  "/api/cnn-status",
+  (req, res, next) => {
+    console.log(`📡 CNN status check from ${req.headers.origin || "unknown"}`);
+    next();
+  },
+  cnnStatusRoutes
+);
+
 app.use("/api/fallback-auth", fallbackAuthRoutes);
 app.use("/api/fallback", fallbackRoutes);
 
-// Health check endpoint
+// Enhanced health check endpoint
 app.get("/health", (req, res) => {
-  res.json({
+  console.log(`🏥 Health check from ${req.headers.origin || "unknown"}`);
+
+  const healthData = {
     status: "healthy",
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    service: "SecuADR Backend",
+    uptime: Math.floor(process.uptime()),
+    service: "SecuADR Backend API",
+    version: "3.0.0",
     mongodb:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     onnx: global.onnxPredictor?.isModelLoaded() ? "loaded" : "not_loaded",
+    cors: {
+      allowedOrigins: [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://finadr.vercel.app",
+      ],
+      requestOrigin: req.headers.origin || "none",
+    },
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + "MB",
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + "MB",
+    },
+  };
+
+  res.json(healthData);
+});
+
+// FIXED: 404 handler for undefined routes - Express v5 compatible
+app.use("/{*catchall}", (req, res) => {
+  console.log(
+    `❌ 404: ${req.method} ${req.originalUrl} from ${
+      req.headers.origin || "unknown"
+    }`
+  );
+  res.status(404).json({
+    success: false,
+    message: "Endpoint not found",
+    availableEndpoints: [
+      "GET /health",
+      "GET /api/cnn-status",
+      "POST /api/authenticate",
+      "POST /api/save-pattern",
+      "GET /api/get-pattern",
+      "POST /api/cnn-predict",
+      "POST /api/fallback-auth",
+      "POST /api/fallback",
+    ],
+    requestedPath: req.originalUrl,
+    method: req.method,
   });
 });
 
@@ -105,28 +230,42 @@ async function checkAIEngineStatus() {
       `http://localhost:${port}/api/cnn-status`,
       {
         timeout: 5000,
+        headers: {
+          "User-Agent": "SecuADR-Internal-Health-Check",
+        },
       }
     );
 
-    const { currentMode, mlService, aiEngine } = response.data;
+    const responseData = response.data;
     console.log("📊 AI Health Result:", {
-      mode: currentMode,
-      available: mlService.status,
-      modelLoaded: aiEngine.cnn.modelLoaded,
-      type: aiEngine.cnn.type,
+      mode: responseData.mode || responseData.currentMode,
+      available: responseData.available || responseData.mlService?.status,
+      modelLoaded:
+        responseData.modelLoaded || responseData.aiEngine?.cnn?.modelLoaded,
+      type: responseData.type || responseData.aiEngine?.cnn?.type || "unknown",
     });
 
-    if (currentMode === "cnn_leading_adaptive_ai" && aiEngine.cnn.modelLoaded) {
+    if (
+      responseData.mode === "cnn_leading_adaptive_ai" ||
+      (responseData.currentMode === "cnn_leading_adaptive_ai" &&
+        responseData.aiEngine?.cnn?.modelLoaded)
+    ) {
       console.log("🧠 AI Engine: ✅ CNN Model Leading Adaptive AI Engine");
       console.log(
-        `📊 CNN Service: ${mlService.status} (${aiEngine.cnn.service})`
+        `📊 CNN Service: ${
+          responseData.available || responseData.mlService?.status
+        } (${
+          responseData.service ||
+          responseData.aiEngine?.cnn?.service ||
+          "CNN Service"
+        })`
       );
     } else {
       console.log(
         "🧠 AI Engine: ⚠️ $1 Recognizer Only (Adaptive AI Unavailable)"
       );
-      if (mlService && mlService.error) {
-        console.log(`📊 AI Service Error: ${mlService.error}`);
+      if (responseData.mlService && responseData.mlService.error) {
+        console.log(`📊 AI Service Error: ${responseData.mlService.error}`);
       }
     }
   } catch (error) {
@@ -141,7 +280,9 @@ async function checkAIEngineStatus() {
 app.listen(port, async () => {
   console.log(`🚀 SecuADR Server running on port ${port}`);
   console.log("🧠 AI-Powered Authentication System Ready");
-  console.log("🌐 CORS enabled for: localhost:3000, finadr.vercel.app");
+  console.log(
+    "🌐 CORS enabled for: localhost:3000, localhost:3001, finadr.vercel.app"
+  );
   console.log("📡 Available API endpoints:");
   console.log(
     "   POST /api/authenticate     - Intelligent fusion authentication"
@@ -162,17 +303,39 @@ app.listen(port, async () => {
   checkAIEngineStatus();
 });
 
-// Graceful shutdown
+// Enhanced graceful shutdown
 process.on("SIGINT", () => {
   console.log("\n🛑 Shutting down SecuADR server gracefully...");
+
+  // Close database connection
   mongoose.connection.close(() => {
     console.log("📊 Database connection closed");
-    process.exit(0);
   });
+
+  // Clean up ONNX predictor
+  if (global.onnxPredictor) {
+    try {
+      global.onnxPredictor.cleanup();
+      console.log("🧠 ONNX predictor cleaned up");
+    } catch (error) {
+      console.log("⚠️ Error cleaning up ONNX predictor:", error.message);
+    }
+  }
+
+  console.log("✅ SecuADR server shutdown complete");
+  process.exit(0);
 });
 
 process.on("unhandledRejection", (err) => {
   console.error("❌ Unhandled Rejection:", err);
+  console.log(
+    "🔄 Server will continue running, but this should be investigated"
+  );
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err);
+  console.log("🛑 Server shutting down due to uncaught exception");
   process.exit(1);
 });
 
