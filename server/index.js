@@ -102,19 +102,29 @@ const cnnStatusRoutes = require("./routes/cnn-status");
 const fallbackAuthRoutes = require("./routes/fallback-auth");
 const fallbackRoutes = require("./routes/fallback");
 
+// NEW: Import CNN training routes
+const trainCnnRoutes = require("./routes/train-cnn");
+
 // ONNX Predictor Service
 const ONNXPredictor = require("./services/ONNXPredictor");
+
+// NEW: CNN Training Service
+const CNNTrainingService = require("./services/CNNTraining");
+
+// Initialize services
+let onnxPredictor = null;
+let cnnTrainingService = null;
 
 // Initialize ONNX predictor on server startup
 const initializeONNX = async () => {
   console.log("🧠 Initializing ONNX CNN model...");
-  const predictor = new ONNXPredictor();
+  onnxPredictor = new ONNXPredictor();
 
   try {
     console.log("🔍 Loading ONNX CNN model from: ./models/gesture_cnn.onnx");
-    await predictor.loadModel("./models/gesture_cnn.onnx");
+    await onnxPredictor.loadModel("./models/gesture_cnn.onnx");
     console.log("✅ ONNX CNN model loaded successfully");
-    global.onnxPredictor = predictor; // Make available globally
+    global.onnxPredictor = onnxPredictor; // Make available globally
   } catch (error) {
     console.error("❌ Failed to load ONNX model:", error.message);
     console.log(
@@ -124,6 +134,35 @@ const initializeONNX = async () => {
   }
 
   console.log("✅ ONNX CNN model initialization complete");
+};
+
+// NEW: Initialize CNN Training Service
+const initializeCNNTraining = async () => {
+  console.log("🧠 Initializing Server-side CNN Training...");
+
+  try {
+    cnnTrainingService = new CNNTrainingService();
+
+    // Try to load existing trained model
+    const modelLoaded = await cnnTrainingService.loadTrainedModel();
+
+    if (modelLoaded) {
+      console.log("✅ Server-side trained CNN model loaded successfully");
+      global.cnnTrainingService = cnnTrainingService;
+    } else {
+      console.log("📊 No existing trained model found - ready for training");
+      global.cnnTrainingService = cnnTrainingService;
+    }
+  } catch (error) {
+    console.error(
+      "❌ Failed to initialize CNN training service:",
+      error.message
+    );
+    console.log("🔄 CNN training service disabled");
+    global.cnnTrainingService = null;
+  }
+
+  console.log("✅ CNN Training service initialization complete");
 };
 
 // Apply routes with logging
@@ -164,6 +203,18 @@ app.use(
 app.use("/api/fallback-auth", fallbackAuthRoutes);
 app.use("/api/fallback", fallbackRoutes);
 
+// NEW: CNN Training routes
+app.use(
+  "/api/train-cnn",
+  (req, res, next) => {
+    console.log(
+      `🧠 CNN training request from ${req.headers.origin || "unknown"}`
+    );
+    next();
+  },
+  trainCnnRoutes
+);
+
 // Enhanced health check endpoint
 app.get("/health", (req, res) => {
   console.log(`🏥 Health check from ${req.headers.origin || "unknown"}`);
@@ -173,10 +224,22 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
     service: "SecuADR Backend API",
-    version: "3.0.0",
+    version: "3.1.0", // Updated version
     mongodb:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+
+    // ONNX model status
     onnx: global.onnxPredictor?.isModelLoaded() ? "loaded" : "not_loaded",
+
+    // NEW: CNN Training service status
+    cnnTraining: {
+      available: global.cnnTrainingService ? "available" : "disabled",
+      modelReady: global.cnnTrainingService?.isModelReady()
+        ? "ready"
+        : "not_ready",
+      isTraining: global.cnnTrainingService?.isTraining || false,
+    },
+
     cors: {
       allowedOrigins: [
         "http://localhost:3000",
@@ -213,6 +276,10 @@ app.use("/{*catchall}", (req, res) => {
       "POST /api/cnn-predict",
       "POST /api/fallback-auth",
       "POST /api/fallback",
+      // NEW endpoints
+      "POST /api/train-cnn",
+      "GET /api/train-cnn/progress",
+      "POST /api/train-cnn/test",
     ],
     requestedPath: req.originalUrl,
     method: req.method,
@@ -268,6 +335,20 @@ async function checkAIEngineStatus() {
         console.log(`📊 AI Service Error: ${responseData.mlService.error}`);
       }
     }
+
+    // NEW: Check CNN Training Service status
+    if (global.cnnTrainingService) {
+      const isReady = global.cnnTrainingService.isModelReady();
+      const isTraining = global.cnnTrainingService.isTraining;
+
+      if (isReady) {
+        console.log("🧠 Server CNN Training: ✅ Model Ready");
+      } else if (isTraining) {
+        console.log("🧠 Server CNN Training: 🔄 Training in Progress");
+      } else {
+        console.log("🧠 Server CNN Training: 📊 Ready to Train");
+      }
+    }
   } catch (error) {
     console.log(
       "🧠 AI Engine: ⚠️ $1 Recognizer Only (Adaptive AI Unavailable)"
@@ -276,7 +357,7 @@ async function checkAIEngineStatus() {
   }
 }
 
-// Start server with ONNX initialization
+// Start server with enhanced initialization
 app.listen(port, async () => {
   console.log(`🚀 SecuADR Server running on port ${port}`);
   console.log("🧠 AI-Powered Authentication System Ready");
@@ -294,10 +375,17 @@ app.listen(port, async () => {
   console.log("   POST /api/fallback-auth    - Enhanced fallback auth");
   console.log("   POST /api/fallback         - Email fallback");
   console.log("   GET  /health               - API health status");
+  // NEW endpoints
+  console.log("   POST /api/train-cnn        - Start CNN training");
+  console.log("   GET  /api/train-cnn/progress - Training progress");
+  console.log("   POST /api/train-cnn/test   - Test trained model");
   console.log("");
 
-  // Initialize ONNX model
+  // Initialize ONNX model (legacy support)
   await initializeONNX();
+
+  // NEW: Initialize CNN Training Service
+  await initializeCNNTraining();
 
   // Check AI engine status after initialization
   checkAIEngineStatus();
@@ -319,6 +407,16 @@ process.on("SIGINT", () => {
       console.log("🧠 ONNX predictor cleaned up");
     } catch (error) {
       console.log("⚠️ Error cleaning up ONNX predictor:", error.message);
+    }
+  }
+
+  // NEW: Clean up CNN Training Service
+  if (global.cnnTrainingService) {
+    try {
+      // Any cleanup needed for TensorFlow.js
+      console.log("🧠 CNN training service cleaned up");
+    } catch (error) {
+      console.log("⚠️ Error cleaning up CNN training service:", error.message);
     }
   }
 

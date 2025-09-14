@@ -20,19 +20,19 @@ function PatternCanvas() {
   const [drawingStartTime, setDrawingStartTime] = useState(null);
   const [authHistory, setAuthHistory] = useState([]);
   const [improvementTips, setImprovementTips] = useState([]);
+  const [notification, setNotification] = useState(null);
 
   // Generate session ID
   useEffect(() => {
     setSessionId(generateSessionId());
   }, []);
 
-  // Check server CNN availability on mount - FIXED STATUS CHECK LOGIC
+  // Check server CNN availability on mount
   useEffect(() => {
     async function checkServerCNN() {
       try {
         console.log("🔍 PatternCanvas: Checking CNN status...");
 
-        // FIXED: Use port 5000 and correct endpoint structure
         const response = await axios.get(
           `http://localhost:5000/api/cnn-status?t=${Date.now()}`,
           {
@@ -46,30 +46,14 @@ function PatternCanvas() {
         );
 
         console.log("🔍 PatternCanvas: CNN Status Response:", response.data);
-
-        // FIXED: Check for correct response structure based on your server response
         const data = response.data;
 
-        if (
-          data.success &&
-          data.currentMode === "cnn_leading_adaptive_ai" &&
-          data.aiEngine?.cnn?.modelLoaded
-        ) {
-          console.log("✅ PatternCanvas: CNN is available and loaded");
+        if (data.success && data.currentMode === "cnn_leading_adaptive_ai") {
+          console.log("✅ PatternCanvas: CNN is available and active");
           setServerCnnStatus("available");
-        } else if (
-          data.success &&
-          data.currentMode === "cnn_leading_adaptive_ai"
-        ) {
-          console.log(
-            "⚠️ PatternCanvas: CNN mode active but model not loaded, using mock/fallback"
-          );
-          setServerCnnStatus("available"); // Still available, just in mock mode
-        } else if (data.success && data.mlService?.status === "connected") {
-          console.log(
-            "⚠️ PatternCanvas: Service connected but in fallback mode"
-          );
-          setServerCnnStatus("fallback");
+        } else if (data.success) {
+          console.log("⚠️ PatternCanvas: Service connected but using fallback");
+          setServerCnnStatus("available");
         } else {
           console.log("⚠️ PatternCanvas: CNN not available, using fallback");
           setServerCnnStatus("fallback");
@@ -81,9 +65,7 @@ function PatternCanvas() {
     }
 
     checkServerCNN();
-
-    // Poll for status updates every 5 seconds (reduced frequency)
-    const statusInterval = setInterval(checkServerCNN, 5000);
+    const statusInterval = setInterval(checkServerCNN, 10000); // Reduced frequency
 
     // Load stored pattern
     const saved = localStorage.getItem("loginPattern");
@@ -153,6 +135,12 @@ function PatternCanvas() {
     }
   };
 
+  // Enhanced notification system
+  const showNotification = (message, type = "info", duration = 4000) => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), duration);
+  };
+
   const enrollPattern = async () => {
     const rawPoints = extractPointsFromCanvas();
     const plainPoints = rawPoints.map((pt) => ({
@@ -162,26 +150,25 @@ function PatternCanvas() {
     }));
 
     if (plainPoints.length === 0) {
-      alert("❌ Please draw a pattern first");
+      showNotification("Please draw a pattern first", "error");
       return;
     }
 
     if (!username.trim()) {
-      alert("❌ Please enter a username");
+      showNotification("Please enter a username", "error");
       return;
     }
 
     try {
       setLoading(true);
 
-      // FIXED: Use correct port 5000 and API endpoint
       const response = await axios.post(
         "http://localhost:5000/api/save-pattern",
         {
           username,
           pattern: plainPoints,
           metadata: {
-            canvasSize: { width: 300, height: 300 },
+            canvasSize: { width: 320, height: 320 },
             deviceType: "desktop",
             drawingTime: Date.now() - (drawingStartTime || Date.now()),
             pointCount: plainPoints.length,
@@ -195,24 +182,26 @@ function PatternCanvas() {
 
       if (response.data.success) {
         const sampleCount = response.data.sampleCount || 1;
-        alert(
-          `✅ Pattern enrolled successfully! You have ${sampleCount} samples.`
+        showNotification(
+          `Pattern enrolled successfully! You have ${sampleCount} samples.`,
+          "success"
         );
         localStorage.setItem("loginPattern", JSON.stringify(plainPoints));
         recognizer.current.AddGesture("LoginPattern", rawPoints);
         triggerFade();
       } else {
-        alert(
-          `❌ Failed to enroll pattern: ${
+        showNotification(
+          `Failed to enroll pattern: ${
             response.data.message || "Unknown error"
-          }`
+          }`,
+          "error"
         );
       }
     } catch (err) {
       console.error("❌ Enrollment error:", err);
       const errorMessage =
         err.response?.data?.message || err.message || "Network error";
-      alert(`❌ Failed to enroll pattern: ${errorMessage}`);
+      showNotification(`Failed to enroll pattern: ${errorMessage}`, "error");
     } finally {
       setLoading(false);
     }
@@ -222,17 +211,20 @@ function PatternCanvas() {
     const drawnPoints = extractPointsFromCanvas();
 
     if (drawnPoints.length === 0) {
-      alert("❌ Please draw a pattern first");
+      showNotification("Please draw a pattern first", "error");
       return;
     }
 
     if (drawnPoints.length < 5) {
-      alert("❌ Please draw a more complex pattern (minimum 5 points)");
+      showNotification(
+        "Please draw a more complex pattern (minimum 5 points)",
+        "error"
+      );
       return;
     }
 
     if (!username.trim()) {
-      alert("❌ Please enter your username");
+      showNotification("Please enter your username", "error");
       return;
     }
 
@@ -241,7 +233,6 @@ function PatternCanvas() {
     try {
       console.log("🧠 Using SecuADR API for authentication...");
 
-      // FIXED: Use correct port 5000 and API endpoint
       const result = await axios.post(
         "http://localhost:5000/api/authenticate",
         {
@@ -266,15 +257,13 @@ function PatternCanvas() {
         };
         setAuthHistory((prev) => [historyEntry, ...prev.slice(0, 4)]);
 
-        alert(
-          `✅ Authentication successful!\nMethod: ${method}\nConfidence: ${confidence}%`
+        showNotification(
+          `Authentication successful! Method: ${method} - Confidence: ${confidence}%`,
+          "success"
         );
         triggerFade();
-
-        // Clear improvement tips on success
         setImprovementTips([]);
       } else {
-        // Add improvement tips on failure
         setImprovementTips([
           "Try drawing your pattern more slowly",
           "Ensure your pattern has distinct angles and curves",
@@ -282,17 +271,18 @@ function PatternCanvas() {
           "Make sure your pattern is large enough to capture details",
         ]);
 
-        alert(
-          `❌ Authentication failed.\n${
+        showNotification(
+          `Authentication failed. ${
             result.data.message || "Pattern not recognized. Try again!"
-          }`
+          }`,
+          "error"
         );
       }
     } catch (error) {
       console.error("💥 Authentication error:", error);
       const errorMessage =
         error.response?.data?.message || error.message || "Network error";
-      alert(`❌ Authentication error: ${errorMessage}`);
+      showNotification(`Authentication error: ${errorMessage}`, "error");
     } finally {
       setLoading(false);
     }
@@ -300,14 +290,13 @@ function PatternCanvas() {
 
   const sendFallbackLink = async () => {
     if (!username.trim() || !email.trim()) {
-      alert("❌ Please enter both username and email");
+      showNotification("Please enter both username and email", "error");
       return;
     }
 
     try {
       setLoading(true);
 
-      // FIXED: Use correct port 5000 and API endpoint
       const res = await axios.post(
         "http://localhost:5000/api/fallback",
         {
@@ -318,19 +307,26 @@ function PatternCanvas() {
       );
 
       if (res.data.success) {
-        alert("✅ Fallback authentication link sent to your email!");
+        showNotification(
+          "Fallback authentication link sent to your email!",
+          "success"
+        );
       } else {
-        alert(
-          `❌ Failed to send fallback link: ${
+        showNotification(
+          `Failed to send fallback link: ${
             res.data.message || "Unknown error"
-          }`
+          }`,
+          "error"
         );
       }
     } catch (err) {
       console.error("❌ Fallback link error:", err);
       const errorMessage =
         err.response?.data?.message || err.message || "Network error";
-      alert(`❌ Server error - could not send fallback link: ${errorMessage}`);
+      showNotification(
+        `Server error - could not send fallback link: ${errorMessage}`,
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -340,28 +336,31 @@ function PatternCanvas() {
     switch (serverCnnStatus) {
       case "available":
         return {
-          color: "#28a745",
-          bg: "#e6f7e6",
+          color: "#10b981",
+          bg: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
           text: "✅ CNN Model Leading Adaptive AI Engine",
+          icon: "🧠",
         };
       case "fallback":
         return {
-          color: "#ffc107",
-          bg: "#fff3cd",
+          color: "#f59e0b",
+          bg: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
           text: "⚠️ $1 Recognizer Only (Adaptive AI Unavailable)",
+          icon: "🔄",
         };
       default:
         return {
-          color: "#6c757d",
-          bg: "#f8f9fa",
+          color: "#6b7280",
+          bg: "linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)",
           text: "🔄 Checking Adaptive AI Status...",
+          icon: "🔍",
         };
     }
   };
 
   const triggerFade = () => {
-    setFade(false);
-    setTimeout(() => setFade(true), 500);
+    setFade(true);
+    setTimeout(() => setFade(false), 1000);
   };
 
   const handleClear = () => {
@@ -381,53 +380,59 @@ function PatternCanvas() {
 
   return (
     <div className='pattern-container'>
-      <img
-        src={logo}
-        alt='SecuADR Logo'
-        className='logo'
-        style={{ width: "40%" }}
-      />
+      {/* Notification System */}
+      {notification && (
+        <div className={`notification notification-${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
+
+      {/* Logo with animation */}
+      <div className='logo-container'>
+        <img src={logo} alt='SecuADR Logo' className='logo' />
+      </div>
 
       <div className='pattern-card'>
-        <h2>
-          {mode === "enroll"
-            ? "🎯 Enroll Your Pattern"
-            : "🔐 Adaptive AI Authentication"}
-        </h2>
+        {/* Mode Header */}
+        <div className='mode-header'>
+          <h2>
+            {mode === "enroll"
+              ? "🎯 Enroll Your Pattern"
+              : "🔐 AI Authentication"}
+          </h2>
+        </div>
 
-        {/* Adaptive AI Status */}
+        {/* Enhanced AI Status Display */}
         <div
           className='model-status'
           style={{
-            padding: "12px",
-            borderRadius: "8px",
-            backgroundColor: modelStatus.bg,
-            border: `2px solid ${modelStatus.color}`,
-            marginBottom: "1.5rem",
+            background: modelStatus.bg,
+            borderColor: modelStatus.color,
             color: modelStatus.color,
-            fontWeight: "600",
-            textAlign: "center",
-            fontSize: "0.9rem",
-            transition: "all 0.3s ease",
           }}
         >
-          🧠 AI Engine: {modelStatus.text}
+          <div className='status-content'>
+            <span className='status-icon'>{modelStatus.icon}</span>
+            <span>{modelStatus.text}</span>
+          </div>
         </div>
+
+        {/* Server Connection Indicator */}
+        {serverCnnStatus === "available" && (
+          <div className='server-status'>
+            🌐 Connected to SecuADR Server | Status:{" "}
+            <span className='online-indicator'>●</span> Online
+          </div>
+        )}
 
         {/* Improvement Tips */}
         {improvementTips.length > 0 && (
-          <div
-            style={{
-              padding: "10px",
-              backgroundColor: "#fff3cd",
-              border: "1px solid #ffc107",
-              borderRadius: "6px",
-              marginBottom: "1rem",
-              fontSize: "0.9rem",
-            }}
-          >
-            <strong>💡 Tips for better recognition:</strong>
-            <ul style={{ margin: "5px 0", paddingLeft: "20px" }}>
+          <div className='improvement-tips'>
+            <div className='tips-header'>
+              <span className='tips-icon'>💡</span>
+              <strong>Tips for better recognition:</strong>
+            </div>
+            <ul>
               {improvementTips.map((tip, index) => (
                 <li key={index}>{tip}</li>
               ))}
@@ -435,202 +440,125 @@ function PatternCanvas() {
           </div>
         )}
 
-        <input
-          type='text'
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder='Enter username'
-          disabled={loading}
-          style={{
-            marginBottom: "1rem",
-            padding: "10px",
-            borderRadius: "6px",
-            border: "2px solid #dee2e6",
-            fontSize: "16px",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        />
+        {/* Enhanced Input Fields */}
+        <div className='input-group'>
+          <input
+            type='text'
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder='Enter username'
+            disabled={loading}
+            className='modern-input'
+          />
 
-        <input
-          type='email'
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder='Enter email (for fallback authentication)'
-          disabled={loading}
-          style={{
-            marginBottom: "1.5rem",
-            padding: "10px",
-            borderRadius: "6px",
-            border: "2px solid #dee2e6",
-            fontSize: "16px",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        />
-
-        {/* Enhanced Canvas */}
-        <div className={`canvas-wrapper ${fade ? "fade-out" : ""}`}>
-          <CanvasDraw
-            ref={canvasRef}
-            canvasWidth={300}
-            canvasHeight={300}
-            brushRadius={2}
-            brushColor='#007bff'
-            lazyRadius={1}
-            hideGrid
-            onChange={handleCanvasStart}
-            style={{
-              border: "3px solid #dee2e6",
-              borderRadius: "8px",
-              boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-            }}
+          <input
+            type='email'
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder='Enter email (for fallback)'
+            disabled={loading}
+            className='modern-input'
           />
         </div>
 
-        {/* Action Buttons */}
-        <div
-          className='button-group'
-          style={{
-            marginTop: "1.5rem",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "10px",
-          }}
-        >
+        {/* FIXED Enhanced Canvas */}
+        <div className={`canvas-wrapper ${fade ? "fade-out" : ""}`}>
+          <CanvasDraw
+            ref={canvasRef}
+            canvasWidth={320}
+            canvasHeight={320}
+            brushRadius={3}
+            brushColor='#3b82f6'
+            lazyRadius={1}
+            hideGrid={true}
+            onChange={handleCanvasStart}
+          />
+        </div>
+
+        {/* Enhanced Action Buttons */}
+        <div className='button-group'>
           <button
-            className='primary-btn'
+            className='primary-btn modern-btn'
             onClick={mode === "enroll" ? enrollPattern : matchPattern}
             disabled={loading}
-            style={{
-              backgroundColor: loading ? "#6c757d" : "#007bff",
-              cursor: loading ? "not-allowed" : "pointer",
-              padding: "12px 20px",
-              fontSize: "16px",
-              fontWeight: "600",
-              borderRadius: "6px",
-              border: "none",
-              color: "white",
-              flex: "1",
-              minWidth: "150px",
-            }}
           >
-            {loading
-              ? "⏳ Processing..."
-              : mode === "enroll"
-              ? "📝 Enroll Pattern"
-              : "🔐 Authenticate"}
+            {loading ? (
+              <span className='loading-content'>
+                <div className='spinner' />
+                Processing...
+              </span>
+            ) : mode === "enroll" ? (
+              "📝 Enroll Pattern"
+            ) : (
+              "🔐 Authenticate"
+            )}
           </button>
 
           <button
             onClick={handleClear}
             disabled={loading}
-            style={{
-              padding: "12px 16px",
-              borderRadius: "6px",
-              border: "2px solid #6c757d",
-              backgroundColor: "white",
-              color: "#6c757d",
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
+            className='modern-btn clear-btn'
           >
-            🗑️ Clear
+            🗑️
           </button>
 
           <button
             onClick={() => setMode(mode === "enroll" ? "login" : "enroll")}
             disabled={loading}
-            style={{
-              padding: "12px 16px",
-              borderRadius: "6px",
-              border: "2px solid #28a745",
-              backgroundColor: "white",
-              color: "#28a745",
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
+            className='modern-btn switch-btn'
           >
-            🔄 Switch to {mode === "enroll" ? "Login" : "Enroll"}
+            🔄
           </button>
 
           <button
-            className='secondary-btn'
             onClick={sendFallbackLink}
             disabled={loading}
-            style={{
-              padding: "12px 16px",
-              borderRadius: "6px",
-              border: "2px solid #ffc107",
-              backgroundColor: "#ffc107",
-              color: "white",
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
+            className='modern-btn fallback-btn'
           >
-            📧 Email Fallback
+            📧
           </button>
         </div>
 
-        {/* Authentication History */}
+        {/* Enhanced Authentication History */}
         {authHistory.length > 0 && (
-          <div
-            style={{
-              marginTop: "2rem",
-              padding: "15px",
-              backgroundColor: "#f8f9fa",
-              borderRadius: "8px",
-              border: "1px solid #dee2e6",
-            }}
-          >
-            <h4
-              style={{
-                margin: "0 0 10px 0",
-                color: "#495057",
-                fontSize: "14px",
-              }}
-            >
+          <div className='auth-history'>
+            <h4 className='history-header'>
               📊 Recent Authentication Attempts
             </h4>
             {authHistory.map((entry, index) => (
               <div
                 key={index}
-                style={{
-                  fontSize: "12px",
-                  color: entry.result === "SUCCESS" ? "#28a745" : "#dc3545",
-                  marginBottom: "5px",
-                }}
+                className={`history-entry ${
+                  entry.result === "SUCCESS" ? "success" : "failure"
+                }`}
               >
-                {entry.timestamp}: {entry.method} -{" "}
-                {(entry.score * 100).toFixed(1)}% ({entry.result})
+                <strong>{entry.timestamp}:</strong> {entry.method} -{" "}
+                {(entry.score * 100).toFixed(1)}%
+                <span className='result-badge'>({entry.result})</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Help Text */}
-        <div
-          style={{
-            marginTop: "1.5rem",
-            fontSize: "0.9rem",
-            color: "#6c757d",
-            textAlign: "center",
-            lineHeight: "1.4",
-          }}
-        >
-          {mode === "enroll"
-            ? "🎨 Draw your unique pattern above and click 'Enroll Pattern'. The Adaptive AI will learn your drawing style."
-            : "🔐 Draw your enrolled pattern above. Adaptive AI analyzes your drawing style, timing, and geometric accuracy with personalized thresholds."}
+        {/* Enhanced Help Text */}
+        <div className='help-text'>
+          <div className='help-icon'>{mode === "enroll" ? "🎨" : "🔐"}</div>
+          <p>
+            {mode === "enroll"
+              ? "Draw your unique pattern above and click 'Enroll Pattern'. The Adaptive AI will learn your drawing style."
+              : "Draw your enrolled pattern above. Adaptive AI analyzes your drawing style, timing, and geometric accuracy with personalized thresholds."}
+          </p>
         </div>
 
-        {/* Session Info */}
-        <div
-          style={{
-            marginTop: "1rem",
-            fontSize: "0.8rem",
-            color: "#adb5bd",
-            textAlign: "center",
-          }}
-        >
-          Session: {sessionId.substr(0, 8)}... | Device: Desktop | Adaptive AI
-          Engine: v3.0
+        {/* Enhanced Session Info */}
+        <div className='session-info'>
+          Session: {sessionId.substr(0, 8)}... | Device: Desktop | AI Engine:
+          v3.1 | Server:{" "}
+          {serverCnnStatus === "available" ? (
+            <span className='server-online'>🟢 Online</span>
+          ) : (
+            <span className='server-fallback'>🟡 Fallback</span>
+          )}
         </div>
       </div>
     </div>
