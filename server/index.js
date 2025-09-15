@@ -11,12 +11,15 @@ require("dotenv").config({
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Enhanced CORS configuration - FIXED to include localhost:3001
+// Enhanced CORS configuration - FIXED to include your IP address
 app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "http://localhost:3001", // Added this for your frontend
+      "http://localhost:3001",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:3001",
+      "http://172.16.74.47:3001", // ✅ FIXED - Added your current frontend URL
       "https://finadr.vercel.app",
     ],
     credentials: true,
@@ -37,12 +40,15 @@ app.use(
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Additional manual CORS headers for preflight requests
+// Additional manual CORS headers for preflight requests - FIXED
 app.use((req, res, next) => {
-  // Allow requests from localhost:3001 specifically
+  // Allow requests from your IP address
   const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://172.16.74.47:3001", // ✅ FIXED - Added your current IP
     "https://finadr.vercel.app",
   ];
 
@@ -215,7 +221,7 @@ app.use(
   trainCnnRoutes
 );
 
-// Enhanced health check endpoint
+// Enhanced health check endpoint - FIXED CORS reference
 app.get("/health", (req, res) => {
   console.log(`🏥 Health check from ${req.headers.origin || "unknown"}`);
 
@@ -244,6 +250,9 @@ app.get("/health", (req, res) => {
       allowedOrigins: [
         "http://localhost:3000",
         "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://172.16.74.47:3001", // ✅ FIXED - Added your IP
         "https://finadr.vercel.app",
       ],
       requestOrigin: req.headers.origin || "none",
@@ -258,7 +267,8 @@ app.get("/health", (req, res) => {
 });
 
 // FIXED: 404 handler for undefined routes - Express v5 compatible
-app.use("/{*catchall}", (req, res) => {
+app.use("*", (req, res) => {
+  // Changed from "/{*catchall}" to "*"
   console.log(
     `❌ 404: ${req.method} ${req.originalUrl} from ${
       req.headers.origin || "unknown"
@@ -362,7 +372,7 @@ app.listen(port, async () => {
   console.log(`🚀 SecuADR Server running on port ${port}`);
   console.log("🧠 AI-Powered Authentication System Ready");
   console.log(
-    "🌐 CORS enabled for: localhost:3000, localhost:3001, finadr.vercel.app"
+    "🌐 CORS enabled for: localhost:3000, localhost:3001, 172.16.74.47:3001, finadr.vercel.app" // ✅ Updated log
   );
   console.log("📡 Available API endpoints:");
   console.log(
