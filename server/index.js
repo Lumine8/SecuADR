@@ -266,9 +266,8 @@ app.get("/health", (req, res) => {
   res.json(healthData);
 });
 
-// FIXED: 404 handler for undefined routes - Express v5 compatible
+// 🔧 FIXED: 404 handler for undefined routes - Changed from "/{*catchall}" to "*"
 app.use("*", (req, res) => {
-  // Changed from "/{*catchall}" to "*"
   console.log(
     `❌ 404: ${req.method} ${req.originalUrl} from ${
       req.headers.origin || "unknown"
