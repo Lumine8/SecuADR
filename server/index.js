@@ -8,10 +8,13 @@ require("dotenv").config({
   debug: true,
 });
 
+// Import TensorFlow.js and custom services
+const GestureCNN = require("./services/GestureCNN");
+
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Enhanced CORS configuration - FIXED to include your IP address
+// Enhanced CORS configuration
 app.use(
   cors({
     origin: [
@@ -19,7 +22,8 @@ app.use(
       "http://localhost:3001",
       "http://127.0.0.1:3000",
       "http://127.0.0.1:3001",
-      "http://172.16.74.47:3001", // ✅ FIXED - Added your current frontend URL
+      "http://172.16.74.47:3001",
+      "http://10.163.66.54:3001",
       "https://finadr.vercel.app",
     ],
     credentials: true,
@@ -32,7 +36,7 @@ app.use(
       "Expires",
       "X-Requested-With",
     ],
-    optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+    optionsSuccessStatus: 200,
   })
 );
 
@@ -40,15 +44,14 @@ app.use(
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Additional manual CORS headers for preflight requests - FIXED
+// Additional manual CORS headers for preflight requests
 app.use((req, res, next) => {
-  // Allow requests from your IP address
   const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
-    "http://172.16.74.47:3001", // ✅ FIXED - Added your current IP
+    "http://172.16.74.47:3001",
     "https://finadr.vercel.app",
   ];
 
@@ -67,7 +70,6 @@ app.use((req, res, next) => {
   );
   res.setHeader("Access-Control-Allow-Credentials", "true");
 
-  // Handle preflight OPTIONS requests
   if (req.method === "OPTIONS") {
     console.log(`🔍 CORS Preflight: ${req.headers.origin} -> ${req.url}`);
     return res.status(200).end();
@@ -84,7 +86,7 @@ console.log(
   process.env.MONGODB_URI ? process.env.MONGODB_URI.length : "undefined"
 );
 
-// MongoDB connection (removed deprecated options)
+// MongoDB connection
 const mongoUri = process.env.MONGODB_URI || "mongodb://localhost:27017/secuadr";
 
 mongoose
@@ -107,71 +109,89 @@ const cnnPredictRoutes = require("./routes/cnn-predict");
 const cnnStatusRoutes = require("./routes/cnn-status");
 const fallbackAuthRoutes = require("./routes/fallback-auth");
 const fallbackRoutes = require("./routes/fallback");
-
-// NEW: Import CNN training routes
 const trainCnnRoutes = require("./routes/train-cnn");
 
-// ONNX Predictor Service
-const ONNXPredictor = require("./services/ONNXPredictor");
+// NEW: Import model training route
+const trainModelRoutes = require("./routes/train-model");
 
-// NEW: CNN Training Service
+// Legacy services (for backward compatibility)
+const ONNXPredictor = require("./services/ONNXPredictor");
 const CNNTrainingService = require("./services/CNNTraining");
 
 // Initialize services
 let onnxPredictor = null;
 let cnnTrainingService = null;
+let gestureCNN = null;
 
-// Initialize ONNX predictor on server startup
+// NEW: Initialize Real Gesture CNN
+const initializeGestureCNN = async () => {
+  console.log("🧠 Initializing Real Gesture CNN (TensorFlow.js)...");
+
+  try {
+    gestureCNN = new GestureCNN();
+    await gestureCNN.initializeModel();
+
+    global.gestureCNN = gestureCNN;
+    console.log("✅ Real Gesture CNN initialized successfully");
+    console.log("📊 CNN Framework: TensorFlow.js");
+    console.log("🎯 CNN Architecture: Dense Neural Network");
+
+    return gestureCNN;
+  } catch (error) {
+    console.error("❌ Failed to initialize Gesture CNN:", error.message);
+    console.log("🔄 Continuing with fallback CNN service...");
+    global.gestureCNN = null;
+    return null;
+  }
+};
+
+// Initialize ONNX predictor (legacy support)
 const initializeONNX = async () => {
-  console.log("🧠 Initializing ONNX CNN model...");
+  console.log("🧠 Initializing ONNX CNN model (Legacy)...");
   onnxPredictor = new ONNXPredictor();
 
   try {
     console.log("🔍 Loading ONNX CNN model from: ./models/gesture_cnn.onnx");
     await onnxPredictor.loadModel("./models/gesture_cnn.onnx");
     console.log("✅ ONNX CNN model loaded successfully");
-    global.onnxPredictor = onnxPredictor; // Make available globally
+    global.onnxPredictor = onnxPredictor;
   } catch (error) {
     console.error("❌ Failed to load ONNX model:", error.message);
-    console.log(
-      "🔄 Continuing with mock/fallback mode - CNN features disabled"
-    );
+    console.log("🔄 ONNX model disabled - using TensorFlow.js CNN");
     global.onnxPredictor = null;
   }
 
   console.log("✅ ONNX CNN model initialization complete");
 };
 
-// NEW: Initialize CNN Training Service
+// Initialize CNN Training Service (legacy)
 const initializeCNNTraining = async () => {
-  console.log("🧠 Initializing Server-side CNN Training...");
+  console.log("🧠 Initializing Server-side CNN Training (Legacy)...");
 
   try {
     cnnTrainingService = new CNNTrainingService();
 
-    // Try to load existing trained model
     const modelLoaded = await cnnTrainingService.loadTrainedModel();
 
     if (modelLoaded) {
-      console.log("✅ Server-side trained CNN model loaded successfully");
+      console.log("✅ Legacy CNN model loaded successfully");
       global.cnnTrainingService = cnnTrainingService;
     } else {
-      console.log("📊 No existing trained model found - ready for training");
+      console.log("📊 No legacy model found");
       global.cnnTrainingService = cnnTrainingService;
     }
   } catch (error) {
     console.error(
-      "❌ Failed to initialize CNN training service:",
+      "❌ Failed to initialize legacy CNN training:",
       error.message
     );
-    console.log("🔄 CNN training service disabled");
     global.cnnTrainingService = null;
   }
 
-  console.log("✅ CNN Training service initialization complete");
+  console.log("✅ Legacy CNN Training service initialization complete");
 };
 
-// Apply routes with logging
+// Apply routes with enhanced logging
 app.use(
   "/api/authenticate",
   (req, res, next) => {
@@ -209,19 +229,31 @@ app.use(
 app.use("/api/fallback-auth", fallbackAuthRoutes);
 app.use("/api/fallback", fallbackRoutes);
 
-// NEW: CNN Training routes
+// Legacy CNN training routes
 app.use(
   "/api/train-cnn",
   (req, res, next) => {
     console.log(
-      `🧠 CNN training request from ${req.headers.origin || "unknown"}`
+      `🧠 Legacy CNN training request from ${req.headers.origin || "unknown"}`
     );
     next();
   },
   trainCnnRoutes
 );
 
-// Enhanced health check endpoint - FIXED CORS reference
+// NEW: Real model training routes
+app.use(
+  "/api/train-model",
+  (req, res, next) => {
+    console.log(
+      `🎯 Real model training request from ${req.headers.origin || "unknown"}`
+    );
+    next();
+  },
+  trainModelRoutes
+);
+
+// Enhanced health check endpoint
 app.get("/health", (req, res) => {
   console.log(`🏥 Health check from ${req.headers.origin || "unknown"}`);
 
@@ -230,15 +262,23 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
     service: "SecuADR Backend API",
-    version: "3.1.0", // Updated version
+    version: "4.0.0", // Updated version with real CNN
     mongodb:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
 
-    // ONNX model status
+    // Real CNN status
+    realCNN: {
+      available: global.gestureCNN ? "available" : "disabled",
+      modelLoaded: global.gestureCNN?.isModelLoaded || false,
+      framework: "TensorFlow.js",
+      architecture: "Dense Neural Network",
+    },
+
+    // Legacy ONNX model status
     onnx: global.onnxPredictor?.isModelLoaded() ? "loaded" : "not_loaded",
 
-    // NEW: CNN Training service status
-    cnnTraining: {
+    // Legacy CNN Training service status
+    legacyCNNTraining: {
       available: global.cnnTrainingService ? "available" : "disabled",
       modelReady: global.cnnTrainingService?.isModelReady()
         ? "ready"
@@ -252,7 +292,7 @@ app.get("/health", (req, res) => {
         "http://localhost:3001",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
-        "http://172.16.74.47:3001", // ✅ FIXED - Added your IP
+        "http://172.16.74.47:3001",
         "https://finadr.vercel.app",
       ],
       requestOrigin: req.headers.origin || "none",
@@ -266,7 +306,7 @@ app.get("/health", (req, res) => {
   res.json(healthData);
 });
 
-// 🔧 FIXED: 404 handler for undefined routes - Changed from "/{*catchall}" to "*"
+// 404 handler - FIXED
 app.use("*", (req, res) => {
   console.log(
     `❌ 404: ${req.method} ${req.originalUrl} from ${
@@ -285,10 +325,12 @@ app.use("*", (req, res) => {
       "POST /api/cnn-predict",
       "POST /api/fallback-auth",
       "POST /api/fallback",
-      // NEW endpoints
+      // Legacy endpoints
       "POST /api/train-cnn",
       "GET /api/train-cnn/progress",
       "POST /api/train-cnn/test",
+      // NEW: Real model training
+      "POST /api/train-model",
     ],
     requestedPath: req.originalUrl,
     method: req.method,
@@ -298,7 +340,6 @@ app.use("*", (req, res) => {
 // Enhanced AI Engine Status Checker
 async function checkAIEngineStatus() {
   try {
-    // Wait for server to fully start
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
     console.log("🔍 Checking AI engine status...");
@@ -319,49 +360,57 @@ async function checkAIEngineStatus() {
       modelLoaded:
         responseData.modelLoaded || responseData.aiEngine?.cnn?.modelLoaded,
       type: responseData.type || responseData.aiEngine?.cnn?.type || "unknown",
+      framework: responseData.aiEngine?.cnn?.framework || "unknown",
     });
 
     if (
-      responseData.mode === "cnn_leading_adaptive_ai" ||
-      (responseData.currentMode === "cnn_leading_adaptive_ai" &&
-        responseData.aiEngine?.cnn?.modelLoaded)
+      responseData.currentMode === "cnn_leading_adaptive_ai" &&
+      responseData.aiEngine?.cnn?.modelLoaded
     ) {
-      console.log("🧠 AI Engine: ✅ CNN Model Leading Adaptive AI Engine");
+      console.log("🧠 AI Engine: ✅ Real CNN Model Active");
       console.log(
-        `📊 CNN Service: ${
-          responseData.available || responseData.mlService?.status
-        } (${
-          responseData.service ||
-          responseData.aiEngine?.cnn?.service ||
-          "CNN Service"
-        })`
+        `📊 CNN Framework: ${
+          responseData.aiEngine?.cnn?.framework || "TensorFlow.js"
+        }`
+      );
+      console.log(
+        `🎯 CNN Architecture: ${
+          responseData.aiEngine?.cnn?.architecture || "Dense Neural Network"
+        }`
       );
     } else {
-      console.log(
-        "🧠 AI Engine: ⚠️ $1 Recognizer Only (Adaptive AI Unavailable)"
-      );
-      if (responseData.mlService && responseData.mlService.error) {
-        console.log(`📊 AI Service Error: ${responseData.mlService.error}`);
+      console.log("🧠 AI Engine: ⚠️ CNN Initializing or Fallback Mode");
+    }
+
+    // Check Real CNN status
+    if (global.gestureCNN) {
+      const cnnStatus = global.gestureCNN.getStatus();
+      if (cnnStatus.modelLoaded) {
+        console.log("🧠 Real Gesture CNN: ✅ Model Ready for Inference");
+        console.log(`🎯 Input Shape: ${JSON.stringify(cnnStatus.inputShape)}`);
+        console.log(
+          `📊 Output Shape: ${JSON.stringify(cnnStatus.outputShape)}`
+        );
+      } else {
+        console.log("🧠 Real Gesture CNN: 🔄 Model Loading");
       }
     }
 
-    // NEW: Check CNN Training Service status
+    // Check legacy systems
     if (global.cnnTrainingService) {
       const isReady = global.cnnTrainingService.isModelReady();
       const isTraining = global.cnnTrainingService.isTraining;
 
       if (isReady) {
-        console.log("🧠 Server CNN Training: ✅ Model Ready");
+        console.log("🧠 Legacy CNN Training: ✅ Model Ready");
       } else if (isTraining) {
-        console.log("🧠 Server CNN Training: 🔄 Training in Progress");
+        console.log("🧠 Legacy CNN Training: 🔄 Training in Progress");
       } else {
-        console.log("🧠 Server CNN Training: 📊 Ready to Train");
+        console.log("🧠 Legacy CNN Training: 📊 Available");
       }
     }
   } catch (error) {
-    console.log(
-      "🧠 AI Engine: ⚠️ $1 Recognizer Only (Adaptive AI Unavailable)"
-    );
+    console.log("🧠 AI Engine: ⚠️ Status Check Failed - Using Fallback Mode");
     console.log(`📊 AI Service Status: Unable to connect (${error.message})`);
   }
 }
@@ -369,35 +418,57 @@ async function checkAIEngineStatus() {
 // Start server with enhanced initialization
 app.listen(port, async () => {
   console.log(`🚀 SecuADR Server running on port ${port}`);
-  console.log("🧠 AI-Powered Authentication System Ready");
+  console.log("🧠 AI-Powered Gesture Authentication System");
+  console.log("🎯 Version 4.0.0 - Real TensorFlow.js CNN Integration");
   console.log(
-    "🌐 CORS enabled for: localhost:3000, localhost:3001, 172.16.74.47:3001, finadr.vercel.app" // ✅ Updated log
+    "🌐 CORS enabled for: localhost:3000, localhost:3001, 172.16.74.47:3001, finadr.vercel.app"
   );
+  console.log("");
   console.log("📡 Available API endpoints:");
   console.log(
     "   POST /api/authenticate     - Intelligent fusion authentication"
   );
   console.log("   POST /api/save-pattern     - Pattern enrollment");
   console.log("   GET  /api/get-pattern      - Pattern retrieval");
-  console.log("   POST /api/cnn-predict      - ONNX CNN inference");
+  console.log("   POST /api/cnn-predict      - Real CNN inference");
   console.log("   GET  /api/cnn-status       - AI health check");
   console.log("   POST /api/fallback-auth    - Enhanced fallback auth");
   console.log("   POST /api/fallback         - Email fallback");
   console.log("   GET  /health               - API health status");
-  // NEW endpoints
-  console.log("   POST /api/train-cnn        - Start CNN training");
-  console.log("   GET  /api/train-cnn/progress - Training progress");
-  console.log("   POST /api/train-cnn/test   - Test trained model");
+  console.log("");
+  console.log("🎯 Real AI Model Endpoints:");
+  console.log("   POST /api/train-model      - Train real CNN with user data");
+  console.log("");
+  console.log("🔧 Legacy Endpoints:");
+  console.log("   POST /api/train-cnn        - Legacy CNN training");
+  console.log("   GET  /api/train-cnn/progress - Legacy training progress");
+  console.log("   POST /api/train-cnn/test   - Legacy model test");
   console.log("");
 
-  // Initialize ONNX model (legacy support)
-  await initializeONNX();
+  console.log("🎯 Initializing AI Systems...");
 
-  // NEW: Initialize CNN Training Service
+  // Initialize Real Gesture CNN (Primary)
+  const realCNN = await initializeGestureCNN();
+  if (realCNN) {
+    console.log("✅ Primary AI System: Real TensorFlow.js CNN Active");
+  } else {
+    console.log("⚠️ Primary AI System: Failed - Using Fallback");
+  }
+
+  // Initialize legacy systems (for backward compatibility)
+  await initializeONNX();
   await initializeCNNTraining();
+
+  console.log("");
+  console.log("🔍 Running comprehensive AI engine status check...");
 
   // Check AI engine status after initialization
   checkAIEngineStatus();
+
+  console.log("");
+  console.log("🎉 SecuADR Server initialization complete!");
+  console.log(`📊 Access health check: http://localhost:${port}/health`);
+  console.log(`🧠 Access CNN status: http://localhost:${port}/api/cnn-status`);
 });
 
 // Enhanced graceful shutdown
@@ -409,6 +480,16 @@ process.on("SIGINT", () => {
     console.log("📊 Database connection closed");
   });
 
+  // Clean up Real CNN
+  if (global.gestureCNN) {
+    try {
+      // TensorFlow.js cleanup if needed
+      console.log("🧠 Real CNN cleaned up");
+    } catch (error) {
+      console.log("⚠️ Error cleaning up Real CNN:", error.message);
+    }
+  }
+
   // Clean up ONNX predictor
   if (global.onnxPredictor) {
     try {
@@ -419,13 +500,12 @@ process.on("SIGINT", () => {
     }
   }
 
-  // NEW: Clean up CNN Training Service
+  // Clean up legacy CNN Training Service
   if (global.cnnTrainingService) {
     try {
-      // Any cleanup needed for TensorFlow.js
-      console.log("🧠 CNN training service cleaned up");
+      console.log("🧠 Legacy CNN training service cleaned up");
     } catch (error) {
-      console.log("⚠️ Error cleaning up CNN training service:", error.message);
+      console.log("⚠️ Error cleaning up legacy CNN service:", error.message);
     }
   }
 

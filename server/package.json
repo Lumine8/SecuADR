@@ -16,6 +16,7 @@
     "@okta/jwt-verifier": "^4.0.2",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-data": "^4.22.0",
+    "@tensorflow/tfjs-layers": "^4.22.0",
     "@tensorflow/tfjs-node": "^4.22.0",
     "@tensorflow/tfjs-node-gpu": "^4.22.0",
     "axios": "^1.11.0",

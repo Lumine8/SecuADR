@@ -2,28 +2,36 @@ const express = require("express");
 const router = express.Router();
 
 router.get("/", (req, res) => {
-  console.log("📡 CNN Status endpoint called (Mock CNN Mode)");
+  console.log("📡 CNN Status endpoint called (Real TensorFlow.js CNN)");
+
+  // Get real model status
+  const gestureCNN = global.gestureCNN;
+  const modelStatus = gestureCNN ? gestureCNN.getStatus() : null;
 
   const response = {
     success: true,
-    currentMode: "cnn_leading_adaptive_ai", // Always show CNN as leading
+    currentMode: modelStatus?.modelLoaded
+      ? "cnn_leading_adaptive_ai"
+      : "initializing",
     aiEngine: {
       cnn: {
-        status: "online",
-        modelLoaded: true, // Always show as loaded
-        service: "Mock CNN Service (Development)",
-        type: "mock",
+        status: modelStatus?.modelLoaded ? "online" : "loading",
+        modelLoaded: modelStatus?.modelLoaded || false,
+        service: "TensorFlow.js CNN Service",
+        type: "real",
+        architecture: modelStatus?.architecture || "Dense Neural Network",
+        framework: "TensorFlow.js",
       },
     },
     mlService: {
-      url: "embedded://mock",
-      status: "connected",
+      url: "embedded://tensorflow.js",
+      status: modelStatus?.modelLoaded ? "connected" : "initializing",
       error: null,
     },
     timestamp: new Date().toISOString(),
   };
 
-  console.log("📊 Sending response: cnn_leading_adaptive_ai (Mock Mode)");
+  console.log("📊 Real CNN Status:", response.currentMode);
   res.json(response);
 });
 
