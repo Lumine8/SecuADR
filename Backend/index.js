@@ -9,7 +9,7 @@ require("dotenv").config({
 });
 
 // Import TensorFlow.js and custom services
-const GestureCNN = require("./services/GestureCNN");
+// const GestureCNN = require("./services/GestureCNN");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -105,18 +105,22 @@ mongoose
 const authenticateRoutes = require("./routes/authenticate");
 const savePatternRoutes = require("./routes/save-pattern");
 const getPatternRoutes = require("./routes/get-pattern");
-const cnnPredictRoutes = require("./routes/cnn-predict");
-const cnnStatusRoutes = require("./routes/cnn-status");
+// const cnnPredictRoutes = require("./routes/cnn-predict");
+// const cnnStatusRoutes = require("./routes/cnn-status");
 const fallbackAuthRoutes = require("./routes/fallback-auth");
 const fallbackRoutes = require("./routes/fallback");
-const trainCnnRoutes = require("./routes/train-cnn");
+// const trainCnnRoutes = require("./routes/train-cnn");
 
 // NEW: Import model training route
-const trainModelRoutes = require("./routes/train-model");
+// const trainModelRoutes = require("./routes/train-model");
 
 // Legacy services (for backward compatibility)
-const ONNXPredictor = require("./services/ONNXPredictor");
-const CNNTrainingService = require("./services/CNNTraining");
+// const ONNXPredictor = require("./services/ONNXPredictor");
+// const CNNTrainingService = require("./services/CNNTraining");
+
+// Import OIDC routes
+const oidcRoutes = require("./routes/oidc");
+
 
 // Initialize services
 let onnxPredictor = null;
@@ -125,70 +129,26 @@ let gestureCNN = null;
 
 // NEW: Initialize Real Gesture CNN
 const initializeGestureCNN = async () => {
-  console.log("🧠 Initializing Real Gesture CNN (TensorFlow.js)...");
-
-  try {
-    gestureCNN = new GestureCNN();
-    await gestureCNN.initializeModel();
-
-    global.gestureCNN = gestureCNN;
-    console.log("✅ Real Gesture CNN initialized successfully");
-    console.log("📊 CNN Framework: TensorFlow.js");
-    console.log("🎯 CNN Architecture: Dense Neural Network");
-
-    return gestureCNN;
-  } catch (error) {
-    console.error("❌ Failed to initialize Gesture CNN:", error.message);
-    console.log("🔄 Continuing with fallback CNN service...");
-    global.gestureCNN = null;
-    return null;
-  }
+  console.log("🧠 Skipping Real Gesture CNN for OIDC integration (temporary)...");
+  
+  // TEMPORARY: Skip TensorFlow.js for now
+  console.log("✅ Using mock gesture validation for OIDC demo");
+  console.log("📊 CNN will be re-enabled after Dec 15 deadline");
+  
+  global.gestureCNN = null;
+  return null;
 };
 
 // Initialize ONNX predictor (legacy support)
 const initializeONNX = async () => {
-  console.log("🧠 Initializing ONNX CNN model (Legacy)...");
-  onnxPredictor = new ONNXPredictor();
-
-  try {
-    console.log("🔍 Loading ONNX CNN model from: ./models/gesture_cnn.onnx");
-    await onnxPredictor.loadModel("./models/gesture_cnn.onnx");
-    console.log("✅ ONNX CNN model loaded successfully");
-    global.onnxPredictor = onnxPredictor;
-  } catch (error) {
-    console.error("❌ Failed to load ONNX model:", error.message);
-    console.log("🔄 ONNX model disabled - using TensorFlow.js CNN");
-    global.onnxPredictor = null;
-  }
-
-  console.log("✅ ONNX CNN model initialization complete");
+  console.log("🧠 Skipping ONNX CNN model (temporary)...");
+  global.onnxPredictor = null;
 };
 
 // Initialize CNN Training Service (legacy)
 const initializeCNNTraining = async () => {
-  console.log("🧠 Initializing Server-side CNN Training (Legacy)...");
-
-  try {
-    cnnTrainingService = new CNNTrainingService();
-
-    const modelLoaded = await cnnTrainingService.loadTrainedModel();
-
-    if (modelLoaded) {
-      console.log("✅ Legacy CNN model loaded successfully");
-      global.cnnTrainingService = cnnTrainingService;
-    } else {
-      console.log("📊 No legacy model found");
-      global.cnnTrainingService = cnnTrainingService;
-    }
-  } catch (error) {
-    console.error(
-      "❌ Failed to initialize legacy CNN training:",
-      error.message
-    );
-    global.cnnTrainingService = null;
-  }
-
-  console.log("✅ Legacy CNN Training service initialization complete");
+  console.log("🧠 Skipping Legacy CNN Training (temporary)...");
+  global.cnnTrainingService = null;
 };
 
 // Apply routes with enhanced logging
@@ -215,43 +175,50 @@ app.use(
 );
 
 app.use("/api/get-pattern", getPatternRoutes);
-app.use("/api/cnn-predict", cnnPredictRoutes);
+// app.use("/api/cnn-predict", cnnPredictRoutes);
 
-app.use(
-  "/api/cnn-status",
-  (req, res, next) => {
-    console.log(`📡 CNN status check from ${req.headers.origin || "unknown"}`);
-    next();
-  },
-  cnnStatusRoutes
-);
+// app.use(
+//   "/api/cnn-status",
+//   (req, res, next) => {
+//     console.log(`📡 CNN status check from ${req.headers.origin || "unknown"}`);
+//     next();
+//   },
+//   cnnStatusRoutes
+// );
 
 app.use("/api/fallback-auth", fallbackAuthRoutes);
 app.use("/api/fallback", fallbackRoutes);
 
 // Legacy CNN training routes
-app.use(
-  "/api/train-cnn",
-  (req, res, next) => {
-    console.log(
-      `🧠 Legacy CNN training request from ${req.headers.origin || "unknown"}`
-    );
-    next();
-  },
-  trainCnnRoutes
-);
+// app.use(
+//   "/api/train-cnn",
+//   (req, res, next) => {
+//     console.log(
+//       `🧠 Legacy CNN training request from ${req.headers.origin || "unknown"}`
+//     );
+//     next();
+//   },
+//   trainCnnRoutes
+// );
 
 // NEW: Real model training routes
-app.use(
-  "/api/train-model",
-  (req, res, next) => {
-    console.log(
-      `🎯 Real model training request from ${req.headers.origin || "unknown"}`
-    );
-    next();
-  },
-  trainModelRoutes
-);
+// app.use(
+//   "/api/train-model",
+//   (req, res, next) => {
+//     console.log(
+//       `🎯 Real model training request from ${req.headers.origin || "unknown"}`
+//     );
+//     next();
+//   },
+//   trainModelRoutes
+// );
+
+// OIDC routes for Okta integration
+app.use("/api/oidc", (req, res, next) => {
+  console.log(`🔐 OIDC: ${req.method} ${req.url}`);
+  next();
+}, oidcRoutes);
+
 
 // Enhanced health check endpoint
 app.get("/health", (req, res) => {

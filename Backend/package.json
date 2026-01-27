@@ -27,9 +27,10 @@
     "express-rate-limit": "^8.1.0",
     "firebase-admin": "^13.5.0",
     "generate-api-key": "^1.0.2",
-    "jsonwebtoken": "^9.0.2",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.18.0",
     "nodemailer": "^7.0.6",
-    "onnxruntime-node": "^1.22.0-rev"
+    "onnxruntime-node": "^1.22.0-rev",
+    "uuid": "^13.0.0"
   }
 }

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import PatternCanvas from "./components/PatternCanvas";
 import FallbackLogin from "./components/FallbackLogin";
 import GestureRecognition from "./components/GestureRecognition";
+import OIDCGestureAuth from "./components/OIDCGestureAuth"; 
 // import DebugStatus from "./components/DebugStatus"; // REMOVED
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path='/login' element={<PatternCanvas />} />
         <Route path='/enroll' element={<PatternCanvas />} />
         <Route path='/fallback/:token' element={<FallbackLogin />} />
+        <Route path='/gesture-auth' element={<OIDCGestureAuth />} />
         <Route path='*' element={<PatternCanvas />} />
       </Routes>
     </Router>
