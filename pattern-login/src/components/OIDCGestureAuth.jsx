@@ -41,7 +41,7 @@ export default function OIDCGestureAuth() {
     const y = e.clientY - rect.top;
 
     const ctx = canvasRef.current.getContext('2d');
-    ctx.strokeStyle = '#667eea';
+    ctx.strokeStyle = '#4f8fff';
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
 
@@ -107,25 +107,26 @@ export default function OIDCGestureAuth() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'radial-gradient(circle at 16% 14%, rgba(57,182,255,0.16), transparent 36%), radial-gradient(circle at 84% 80%, rgba(92,255,196,0.12), transparent 34%), linear-gradient(140deg, var(--theme-bg-1) 0%, var(--theme-bg-2) 50%, var(--theme-bg-3) 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '2rem'
     }}>
       <div style={{
-        background: 'white',
+        background: 'var(--theme-panel)',
+        border: '1px solid var(--theme-panel-border)',
         padding: '2.5rem',
         borderRadius: '20px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--theme-shadow)',
         maxWidth: '500px',
         width: '100%'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '1.8rem' }}>
+          <h1 style={{ margin: '0 0 0.5rem 0', color: 'var(--theme-ink)', fontSize: '1.8rem' }}>
             🔐 SecuADR Authentication
           </h1>
-          <p style={{ color: '#666', margin: 0, fontSize: '0.95rem' }}>
+          <p style={{ color: 'var(--theme-ink-soft)', margin: 0, fontSize: '0.95rem' }}>
             Draw your gesture pattern to authenticate
           </p>
         </div>
@@ -135,10 +136,10 @@ export default function OIDCGestureAuth() {
           width={400}
           height={400}
           style={{
-            border: '3px solid #667eea',
+            border: '3px solid var(--theme-accent)',
             borderRadius: '12px',
             cursor: 'crosshair',
-            background: 'white',
+            background: 'var(--theme-panel-soft)',
             display: 'block',
             margin: '0 auto',
             touchAction: 'none'
@@ -160,9 +161,9 @@ export default function OIDCGestureAuth() {
             disabled={loading}
             style={{
               padding: '0.8rem 2rem',
-              border: '2px solid #667eea',
-              background: 'white',
-              color: '#667eea',
+              border: '2px solid var(--theme-accent)',
+              background: 'var(--theme-panel-soft)',
+              color: '#9fc4ff',
               borderRadius: '8px',
               cursor: loading ? 'not-allowed' : 'pointer',
               fontSize: '1rem',
@@ -177,9 +178,9 @@ export default function OIDCGestureAuth() {
             disabled={loading}
             style={{
               padding: '0.8rem 2rem',
-              border: '2px solid #667eea',
-              background: '#667eea',
-              color: 'white',
+              border: '2px solid var(--theme-accent)',
+              background: 'linear-gradient(135deg, var(--theme-accent) 0%, var(--theme-accent-2) 100%)',
+              color: '#041327',
               borderRadius: '8px',
               cursor: loading ? 'not-allowed' : 'pointer',
               fontSize: '1rem',
@@ -196,10 +197,10 @@ export default function OIDCGestureAuth() {
             marginTop: '1.5rem',
             padding: '1rem',
             borderRadius: '8px',
-            background: status.includes('✅') ? '#d4edda' :
-              status.includes('⏳') ? '#fff3cd' : '#f8d7da',
-            color: status.includes('✅') ? '#155724' :
-              status.includes('⏳') ? '#856404' : '#721c24',
+            background: status.includes('✅') ? 'rgba(9,66,38,0.35)' :
+              status.includes('⏳') ? 'rgba(84,61,10,0.4)' : 'rgba(90,25,35,0.6)',
+            color: status.includes('✅') ? '#b8f4dc' :
+              status.includes('⏳') ? '#ffdf9b' : '#ffc3cf',
             fontWeight: '500',
             textAlign: 'center'
           }}>
@@ -210,7 +211,7 @@ export default function OIDCGestureAuth() {
         <div style={{
           marginTop: '2rem',
           textAlign: 'center',
-          color: '#999',
+          color: '#9cb2d2',
           fontSize: '0.85rem'
         }}>
           🔒 Secured by SecuADR AI-Powered Authentication

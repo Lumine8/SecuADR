@@ -3,6 +3,20 @@
 @tailwind utilities;
 
 :root {
+  --theme-bg-1: #05080c;
+  --theme-bg-2: #0a1118;
+  --theme-bg-3: #111a23;
+  --theme-ink: #e8f1ff;
+  --theme-ink-soft: #b8c8de;
+  --theme-panel: rgba(12, 18, 27, 0.9);
+  --theme-panel-soft: rgba(20, 31, 45, 0.92);
+  --theme-panel-border: rgba(139, 191, 255, 0.24);
+  --theme-accent: #4f8fff;
+  --theme-accent-2: #2ad4d4;
+  --theme-success: #29b982;
+  --theme-warning: #ffbe41;
+  --theme-danger: #ff5a78;
+  --theme-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   /* font-family: system-ui, Avenir, Helvetica, Arial, "Funnel Sans", sans-serif; */
   font-family: "Funnel Sans", sans-serif;
   /* line-height: 1.5; */

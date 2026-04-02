@@ -418,6 +418,157 @@
     padding: 15px;
   }
 
+  /* Black-ish theme overrides */
+  .enrollment-container {
+    background:
+      radial-gradient(
+        circle at 16% 14%,
+        rgba(57, 182, 255, 0.16),
+        transparent 36%
+      ),
+      radial-gradient(
+        circle at 84% 80%,
+        rgba(92, 255, 196, 0.12),
+        transparent 34%
+      ),
+      linear-gradient(140deg, #05080c 0%, #0a1118 50%, #111a23 100%);
+    color: #e8f1ff;
+  }
+
+  .enrollment-card {
+    background: rgba(12, 18, 27, 0.88);
+    border: 1px solid rgba(139, 191, 255, 0.24);
+    box-shadow: 0 22px 56px rgba(0, 0, 0, 0.5);
+    color: #e8f1ff;
+  }
+
+  .enrollment-card h1,
+  .step-content h2,
+  .form-group label,
+  .review-section h3 {
+    color: #edf5ff;
+  }
+
+  .enrollment-subtitle,
+  .progress-step p,
+  .step-content p,
+  .gesture-instructions,
+  .review-section p {
+    color: #b8c8de;
+  }
+
+  .progress-tracker,
+  .gesture-instructions,
+  .review-section,
+  .form-group input:disabled {
+    background: rgba(20, 30, 44, 0.78);
+  }
+
+  .progress-circle,
+  .progress-line,
+  .form-group input,
+  .gesture-canvas-wrapper,
+  .sample-badge,
+  .btn-secondary {
+    border-color: rgba(139, 191, 255, 0.3);
+  }
+
+  .progress-circle {
+    background: rgba(34, 46, 66, 0.9);
+    color: #9cb2d2;
+  }
+
+  .progress-step.active .progress-circle {
+    background: linear-gradient(135deg, #4f8fff 0%, #2ad4d4 100%);
+    box-shadow: 0 4px 12px rgba(79, 143, 255, 0.4);
+  }
+
+  .progress-step.completed .progress-circle {
+    background: #29b982;
+    color: #041711;
+  }
+
+  .progress-line {
+    background: rgba(85, 112, 151, 0.5);
+  }
+
+  .progress-line.active {
+    background: linear-gradient(90deg, #4f8fff 0%, #2ad4d4 100%);
+  }
+
+  .form-group input {
+    background: rgba(20, 31, 45, 0.92);
+    color: #ecf3ff;
+  }
+
+  .form-group input:focus {
+    border-color: #4f8fff;
+    box-shadow: 0 0 0 3px rgba(79, 143, 255, 0.2);
+  }
+
+  .gesture-canvas-wrapper {
+    background: rgba(12, 21, 33, 0.95);
+  }
+
+  .sample-counter,
+  .sample-points {
+    background: rgba(44, 111, 170, 0.2);
+    color: #8ecbff;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #4f8fff 0%, #2ad4d4 100%);
+    color: #041327;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(47, 126, 226, 0.42);
+  }
+
+  .btn-secondary {
+    background: rgba(20, 31, 45, 0.92);
+    color: #cddcf2;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: rgba(27, 42, 61, 0.95);
+  }
+
+  .sample-badge {
+    background: rgba(20, 31, 45, 0.9);
+  }
+
+  .enrollment-warning {
+    background: rgba(84, 61, 10, 0.4);
+    border-color: rgba(255, 190, 65, 0.62);
+  }
+
+  .enrollment-warning h4,
+  .enrollment-warning ul {
+    color: #ffdf9b;
+  }
+
+  .enrollment-info {
+    background: rgba(9, 66, 38, 0.35);
+    border-color: rgba(54, 211, 153, 0.62);
+  }
+
+  .enrollment-info h4,
+  .enrollment-info p {
+    color: #b8f4dc;
+  }
+
+  .alert-error {
+    background: rgba(90, 25, 35, 0.6);
+    color: #ffc3cf;
+    border-left-color: #ff5a78;
+  }
+
+  .alert-info {
+    background: rgba(20, 47, 86, 0.62);
+    color: #b8d8ff;
+    border-left-color: #4f8fff;
+  }
   .progress-step p {
     font-size: 0.7rem;
   }
@@ -442,4 +593,409 @@
   .success-icon {
     font-size: 40px;
   }
+}
+
+/* Global dark overrides */
+.enrollment-container {
+  background:
+    radial-gradient(
+      circle at 16% 14%,
+      rgba(57, 182, 255, 0.16),
+      transparent 36%
+    ),
+    radial-gradient(
+      circle at 84% 80%,
+      rgba(92, 255, 196, 0.12),
+      transparent 34%
+    ),
+    linear-gradient(
+      140deg,
+      var(--theme-bg-1) 0%,
+      var(--theme-bg-2) 50%,
+      var(--theme-bg-3) 100%
+    );
+  color: var(--theme-ink);
+}
+
+.enrollment-card {
+  background: var(--theme-panel);
+  border: 1px solid var(--theme-panel-border);
+  box-shadow: var(--theme-shadow);
+  color: var(--theme-ink);
+}
+
+.enrollment-card h1,
+.step-content h2,
+.form-group label,
+.review-section h3 {
+  color: var(--theme-ink);
+}
+
+.enrollment-subtitle,
+.progress-step p,
+.step-content p,
+.gesture-instructions,
+.review-section p,
+.detail-note {
+  color: var(--theme-ink-soft);
+}
+
+.progress-tracker,
+.gesture-instructions,
+.review-section,
+.form-group input:disabled {
+  background: rgba(20, 30, 44, 0.78);
+}
+
+.progress-circle,
+.progress-line,
+.form-group input,
+.gesture-canvas-wrapper,
+.sample-badge,
+.btn-secondary {
+  border-color: rgba(139, 191, 255, 0.3);
+}
+
+.progress-circle {
+  background: rgba(34, 46, 66, 0.9);
+  color: #9cb2d2;
+}
+
+.progress-step.active .progress-circle {
+  background: linear-gradient(
+    135deg,
+    var(--theme-accent) 0%,
+    var(--theme-accent-2) 100%
+  );
+  box-shadow: 0 4px 12px rgba(79, 143, 255, 0.4);
+}
+
+.progress-step.completed .progress-circle {
+  background: var(--theme-success);
+  color: #041711;
+}
+
+.progress-line {
+  background: rgba(85, 112, 151, 0.5);
+}
+
+.progress-line.active {
+  background: linear-gradient(
+    90deg,
+    var(--theme-accent) 0%,
+    var(--theme-accent-2) 100%
+  );
+}
+
+.form-group input {
+  background: var(--theme-panel-soft);
+  color: var(--theme-ink);
+}
+
+.form-group input:focus {
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 0 3px rgba(79, 143, 255, 0.2);
+}
+
+.gesture-canvas-wrapper {
+  background: rgba(12, 21, 33, 0.95);
+}
+
+.sample-counter,
+.sample-points {
+  background: rgba(44, 111, 170, 0.2);
+  color: #8ecbff;
+}
+
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--theme-accent) 0%,
+    var(--theme-accent-2) 100%
+  );
+  color: #041327;
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(47, 126, 226, 0.42);
+}
+
+.btn-secondary {
+  background: var(--theme-panel-soft);
+  color: #cddcf2;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(27, 42, 61, 0.95);
+}
+
+.sample-badge {
+  background: rgba(20, 31, 45, 0.9);
+}
+
+.enrollment-warning {
+  background: rgba(84, 61, 10, 0.4);
+  border-color: rgba(255, 190, 65, 0.62);
+}
+
+.enrollment-warning h4,
+.enrollment-warning ul {
+  color: #ffdf9b;
+}
+
+.enrollment-info {
+  background: rgba(9, 66, 38, 0.35);
+  border-color: rgba(54, 211, 153, 0.62);
+}
+
+.enrollment-info h4,
+.enrollment-info p {
+  color: #b8f4dc;
+}
+
+.alert-error {
+  background: rgba(90, 25, 35, 0.6);
+  color: #ffc3cf;
+  border-left-color: var(--theme-danger);
+}
+
+.alert-info {
+  background: rgba(20, 47, 86, 0.62);
+  color: #b8d8ff;
+  border-left-color: var(--theme-accent);
+}
+
+/* Final dashboard-like dark enforcement */
+.enrollment-container {
+  background:
+    radial-gradient(
+      circle at 14% 12%,
+      rgba(79, 143, 255, 0.18),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at 84% 18%,
+      rgba(42, 212, 212, 0.12),
+      transparent 33%
+    ),
+    linear-gradient(
+      140deg,
+      var(--theme-bg-1) 0%,
+      var(--theme-bg-2) 50%,
+      var(--theme-bg-3) 100%
+    ) !important;
+  color: var(--theme-ink) !important;
+}
+
+.enrollment-card,
+.review-section,
+.gesture-instructions,
+.sample-badge,
+.form-group input,
+.btn-secondary {
+  background: var(--theme-panel-soft) !important;
+  color: var(--theme-ink) !important;
+  border-color: var(--theme-panel-border) !important;
+}
+
+.enrollment-card {
+  background: var(--theme-panel) !important;
+  box-shadow: var(--theme-shadow) !important;
+}
+
+.enrollment-card h1,
+.step-content h2,
+.form-group label,
+.review-section h3,
+.step-content p,
+.enrollment-subtitle,
+.progress-step p,
+.review-section p {
+  color: var(--theme-ink-soft) !important;
+}
+
+.enrollment-card h1,
+.step-content h2,
+.form-group label,
+.review-section h3 {
+  color: var(--theme-ink) !important;
+}
+
+.btn-primary,
+.progress-step.active .progress-circle,
+.progress-line.active {
+  background: linear-gradient(
+    135deg,
+    var(--theme-accent) 0%,
+    var(--theme-accent-2) 100%
+  ) !important;
+}
+
+/* Shared token-based dark theme (global) */
+.enrollment-container {
+  background:
+    radial-gradient(
+      circle at 16% 14%,
+      rgba(57, 182, 255, 0.16),
+      transparent 36%
+    ),
+    radial-gradient(
+      circle at 84% 80%,
+      rgba(92, 255, 196, 0.12),
+      transparent 34%
+    ),
+    linear-gradient(
+      140deg,
+      var(--theme-bg-1) 0%,
+      var(--theme-bg-2) 50%,
+      var(--theme-bg-3) 100%
+    );
+  color: var(--theme-ink);
+}
+
+.enrollment-card {
+  background: var(--theme-panel);
+  border: 1px solid var(--theme-panel-border);
+  box-shadow: var(--theme-shadow);
+  color: var(--theme-ink);
+}
+
+.enrollment-card h1,
+.step-content h2,
+.form-group label,
+.review-section h3 {
+  color: var(--theme-ink);
+}
+
+.enrollment-subtitle,
+.progress-step p,
+.step-content p,
+.gesture-instructions,
+.review-section p {
+  color: var(--theme-ink-soft);
+}
+
+.progress-tracker,
+.gesture-instructions,
+.review-section,
+.form-group input:disabled {
+  background: rgba(20, 30, 44, 0.78);
+}
+
+.progress-circle,
+.progress-line,
+.form-group input,
+.gesture-canvas-wrapper,
+.sample-badge,
+.btn-secondary {
+  border-color: rgba(139, 191, 255, 0.3);
+}
+
+.progress-circle {
+  background: rgba(34, 46, 66, 0.9);
+  color: #9cb2d2;
+}
+
+.progress-step.active .progress-circle {
+  background: linear-gradient(
+    135deg,
+    var(--theme-accent) 0%,
+    var(--theme-accent-2) 100%
+  );
+  box-shadow: 0 4px 12px rgba(79, 143, 255, 0.4);
+}
+
+.progress-step.completed .progress-circle {
+  background: var(--theme-success);
+  color: #041711;
+}
+
+.progress-line {
+  background: rgba(85, 112, 151, 0.5);
+}
+
+.progress-line.active {
+  background: linear-gradient(
+    90deg,
+    var(--theme-accent) 0%,
+    var(--theme-accent-2) 100%
+  );
+}
+
+.form-group input {
+  background: var(--theme-panel-soft);
+  color: var(--theme-ink);
+}
+
+.form-group input:focus {
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 0 3px rgba(79, 143, 255, 0.2);
+}
+
+.gesture-canvas-wrapper {
+  background: rgba(12, 21, 33, 0.95);
+}
+
+.sample-counter,
+.sample-points {
+  background: rgba(44, 111, 170, 0.2);
+  color: #8ecbff;
+}
+
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--theme-accent) 0%,
+    var(--theme-accent-2) 100%
+  );
+  color: #041327;
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(47, 126, 226, 0.42);
+}
+
+.btn-secondary {
+  background: var(--theme-panel-soft);
+  color: #cddcf2;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(27, 42, 61, 0.95);
+}
+
+.sample-badge {
+  background: rgba(20, 31, 45, 0.9);
+}
+
+.enrollment-warning {
+  background: rgba(84, 61, 10, 0.4);
+  border-color: rgba(255, 190, 65, 0.62);
+}
+
+.enrollment-warning h4,
+.enrollment-warning ul {
+  color: #ffdf9b;
+}
+
+.enrollment-info {
+  background: rgba(9, 66, 38, 0.35);
+  border-color: rgba(54, 211, 153, 0.62);
+}
+
+.enrollment-info h4,
+.enrollment-info p {
+  color: #b8f4dc;
+}
+
+.alert-error {
+  background: rgba(90, 25, 35, 0.6);
+  color: #ffc3cf;
+  border-left-color: var(--theme-danger);
+}
+
+.alert-info {
+  background: rgba(20, 47, 86, 0.62);
+  color: #b8d8ff;
+  border-left-color: var(--theme-accent);
 }

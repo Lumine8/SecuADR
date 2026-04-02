@@ -1,11 +1,11 @@
 :root {
-  --trust-bg-a: #05081a;
-  --trust-bg-b: #0d1333;
-  --trust-cyan: #34dbff;
-  --trust-neon: #35f6b2;
+  --trust-bg-a: var(--theme-bg-1);
+  --trust-bg-b: var(--theme-bg-2);
+  --trust-cyan: var(--theme-accent);
+  --trust-neon: var(--theme-accent-2);
   --trust-violet: #806bff;
-  --trust-warn: #ffd66e;
-  --trust-danger: #ff637d;
+  --trust-warn: var(--theme-warning);
+  --trust-danger: var(--theme-danger);
 }
 
 .trust-shell {
@@ -16,8 +16,16 @@
   overflow-x: hidden;
   font-family: "Funnel Sans", "Segoe UI", sans-serif;
   background:
-    radial-gradient(circle at 10% 8%, #17245a 0%, transparent 40%),
-    radial-gradient(circle at 86% 14%, #1f305f 0%, transparent 36%),
+    radial-gradient(
+      circle at 10% 8%,
+      rgba(57, 182, 255, 0.14) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 86% 14%,
+      rgba(92, 255, 196, 0.1) 0%,
+      transparent 36%
+    ),
     linear-gradient(130deg, var(--trust-bg-a), var(--trust-bg-b));
 }
 
@@ -33,8 +41,8 @@
 }
 
 .glass-panel {
-  border: 1px solid rgba(138, 187, 255, 0.24);
-  background: rgba(9, 18, 48, 0.62);
+  border: 1px solid var(--theme-panel-border);
+  background: var(--theme-panel);
   backdrop-filter: blur(10px);
   box-shadow: 0 14px 28px rgba(2, 8, 32, 0.4);
   border-radius: 18px;

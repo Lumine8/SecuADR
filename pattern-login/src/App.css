@@ -5,18 +5,37 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   width: 100%;
   height: 100%;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #f5f5f5;
+  background:
+    radial-gradient(
+      circle at 14% 12%,
+      rgba(57, 182, 255, 0.13),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 84% 18%,
+      rgba(92, 255, 196, 0.1),
+      transparent 30%
+    ),
+    linear-gradient(
+      140deg,
+      var(--theme-bg-1) 0%,
+      var(--theme-bg-2) 50%,
+      var(--theme-bg-3) 100%
+    );
+  color: var(--theme-ink);
 }
 
 /* Loading State */
@@ -25,14 +44,25 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background:
+    radial-gradient(
+      circle at 16% 18%,
+      rgba(57, 182, 255, 0.16),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at 84% 82%,
+      rgba(92, 255, 196, 0.12),
+      transparent 34%
+    ),
+    linear-gradient(
+      140deg,
+      var(--theme-bg-1) 0%,
+      var(--theme-bg-2) 50%,
+      var(--theme-bg-3) 100%
+    );
+  color: var(--theme-ink);
   font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: 1px;
 }
-  }
-  to {
-    opacity: 0;
-  }
-} */

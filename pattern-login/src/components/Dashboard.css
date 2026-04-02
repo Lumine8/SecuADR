@@ -459,3 +459,118 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Global dark overrides */
+.dashboard-container {
+  color: var(--theme-ink);
+}
+
+.dashboard-container h1,
+.chart-container h3,
+.risk-alerts h3,
+.modal-content h2,
+.detail-section h3,
+.sessions-table th {
+  color: var(--theme-ink);
+}
+
+.user-info,
+.tab-btn,
+.drift-info p,
+.detail-section p,
+.detail-section li,
+.detail-note,
+.dashboard-loading {
+  color: var(--theme-ink-soft);
+}
+
+.dashboard-tabs {
+  border-bottom-color: rgba(139, 191, 255, 0.25);
+}
+
+.tab-btn:hover {
+  color: var(--theme-ink);
+  border-bottom-color: rgba(139, 191, 255, 0.4);
+}
+
+.tab-btn.active {
+  color: var(--theme-accent);
+  border-bottom-color: var(--theme-accent);
+}
+
+.stat-card,
+.btn-small {
+  background: linear-gradient(
+    135deg,
+    var(--theme-accent) 0%,
+    var(--theme-accent-2) 100%
+  );
+  color: #041327;
+}
+
+.chart-container,
+.sessions-table,
+.risk-alerts,
+.drift-info,
+.modal-content,
+.detail-section {
+  background: var(--theme-panel);
+  border: 1px solid var(--theme-panel-border);
+}
+
+.sessions-table thead,
+.sessions-table tr:hover,
+.alert,
+.detail-section {
+  background: var(--theme-panel-soft);
+}
+
+.sessions-table th {
+  border-bottom-color: rgba(139, 191, 255, 0.28);
+}
+
+.sessions-table td {
+  border-bottom-color: rgba(139, 191, 255, 0.16);
+}
+
+.badge.decision-allow,
+.badge.risk-low {
+  background: rgba(41, 185, 130, 0.24);
+  color: #a9f0d3;
+}
+
+.badge.decision-allow_with_warning,
+.badge.risk-medium,
+.alert-high {
+  background: rgba(255, 190, 65, 0.24);
+  color: #ffd891;
+}
+
+.badge.decision-challenge,
+.badge.risk-high {
+  background: rgba(255, 150, 0, 0.25);
+  color: #ffd5a0;
+}
+
+.badge.decision-block,
+.badge.risk-critical,
+.alert-critical {
+  background: rgba(255, 90, 120, 0.22);
+  color: #ffc3cf;
+}
+
+.btn-small:hover {
+  background: linear-gradient(135deg, #79a9ff 0%, #59e8e8 100%);
+}
+
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.close-btn {
+  color: var(--theme-ink-soft);
+}
+
+.close-btn:hover {
+  color: var(--theme-ink);
+}
