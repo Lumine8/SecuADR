@@ -1,8 +1,9 @@
 import React, { useRef } from "react";
-import CanvasDraw from "react-canvas-draw";
+import GesturePad from "./GesturePad";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import DollarRecognizer, { Point } from "../utils/dollarOneRecognizer";
+import API_BASE_URL from "../config/api";
 
 function FallbackLogin() {
   const canvasRef = useRef(null);
@@ -20,7 +21,7 @@ function FallbackLogin() {
     const points = extractPoints();
 
     try {
-      const res = await axios.post("http://localhost:5000/api/fallback-auth", {
+      const res = await axios.post(`${API_BASE_URL}/api/fallback-auth`, {
         token,
         attempt: points,
       });
@@ -40,15 +41,13 @@ function FallbackLogin() {
   return (
     <div style={{ padding: "1rem" }}>
       <h2>Fallback Pattern Login</h2>
-      <CanvasDraw
+      <GesturePad
         ref={canvasRef}
         canvasWidth={300}
         canvasHeight={300}
         brushRadius={2}
         brushColor="#007bff"
-        lazyRadius={1}
-        hideGrid
-        style={{ border: "1px solid #ccc", borderRadius: "10px" }}
+        style={{ border: "1px solid #ccc", borderRadius: "10px", touchAction: "none" }}
       />
       <div style={{ marginTop: "1rem" }}>
         <button onClick={handleLogin}>Submit Pattern</button>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import API_BASE_URL from "../config/api";
 
 export default function OIDCGestureAuth() {
   const [searchParams] = useSearchParams();
@@ -7,9 +8,9 @@ export default function OIDCGestureAuth() {
   const [loading, setLoading] = useState(false);
   const [gestureData, setGestureData] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
-  
+
   const canvasRef = useRef(null);
-  
+
   const sessionId = searchParams.get('session');
   const redirectUri = searchParams.get('redirect');
   const state = searchParams.get('state');
@@ -34,7 +35,7 @@ export default function OIDCGestureAuth() {
 
   const draw = (e) => {
     if (!isDrawing) return;
-    
+
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -76,7 +77,7 @@ export default function OIDCGestureAuth() {
     setStatus('⏳ Verifying your gesture...');
 
     try {
-      const response = await fetch('http://localhost:5000/api/oidc/verify-gesture', {
+      const response = await fetch(`${API_BASE_URL}/api/oidc/verify-gesture`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -104,8 +105,8 @@ export default function OIDCGestureAuth() {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
+    <div style={{
+      minHeight: '100vh',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       display: 'flex',
       alignItems: 'center',
@@ -148,7 +149,7 @@ export default function OIDCGestureAuth() {
           onMouseLeave={stopDrawing}
         />
 
-        <div style={{ 
+        <div style={{
           marginTop: '1.5rem',
           display: 'flex',
           gap: '1rem',
@@ -195,10 +196,10 @@ export default function OIDCGestureAuth() {
             marginTop: '1.5rem',
             padding: '1rem',
             borderRadius: '8px',
-            background: status.includes('✅') ? '#d4edda' : 
-                       status.includes('⏳') ? '#fff3cd' : '#f8d7da',
-            color: status.includes('✅') ? '#155724' : 
-                   status.includes('⏳') ? '#856404' : '#721c24',
+            background: status.includes('✅') ? '#d4edda' :
+              status.includes('⏳') ? '#fff3cd' : '#f8d7da',
+            color: status.includes('✅') ? '#155724' :
+              status.includes('⏳') ? '#856404' : '#721c24',
             fontWeight: '500',
             textAlign: 'center'
           }}>
@@ -206,11 +207,11 @@ export default function OIDCGestureAuth() {
           </div>
         )}
 
-        <div style={{ 
-          marginTop: '2rem', 
+        <div style={{
+          marginTop: '2rem',
           textAlign: 'center',
           color: '#999',
-          fontSize: '0.85rem' 
+          fontSize: '0.85rem'
         }}>
           🔒 Secured by SecuADR AI-Powered Authentication
         </div>

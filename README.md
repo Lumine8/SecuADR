@@ -1,33 +1,87 @@
 # ![SecuADR Logo](pattern-login/src/assets/logo.png)
 
-
 # SecuADR **AI-Powered Gesture Authentication Platform**
 
-SecuADR is a breakthrough authentication system that eliminates passwords through real-time gesture recognition using advanced CNN-based machine learning. It provides sub-second authentication with robust anti-phishing protection and liveness detection, designed specifically for enterprise security and fintech applications.
+> **MVP Refactoring Complete (April 2026)** - Read [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for what's new!
+
+SecuADR is a breakthrough authentication system that eliminates passwords through **behavioral biometric intelligence**. It demonstrates how fraudsters are caught **even when they have correct credentials** through advanced anomaly detection and adaptive security responses.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://python.org)
-[![TensorFlow](https://img.shields.io/badge/tensorflow-2.x-orange)](https://tensorflow.org)
+[![Node.js](https://img.shields.io/badge/node-16%2B-green)](https://nodejs.org)
 [![React](https://img.shields.io/badge/react-18.x-blue)](https://reactjs.org)
+[![MongoDB](https://img.shields.io/badge/mongodb-4.0%2B-green)](https://mongodb.com)
 
-## 🚀 Features
+## 🎯 What's New: 5-Layer Architecture
 
-- **Passwordless Authentication** - Complete elimination of traditional passwords
-- **Real-time Gesture Recognition** - Sub-second authentication using behavioral biometrics
-- **CNN Deep Learning Model**: 100% accuracy trained model for pattern recognition
-- **$1 Recognizer Integration**: Geometric validation for pattern consistency
-- **Adaptive Fusion Engine**: Intelligent decision routing between AI algorithms
-- **Anti-Phishing Protection** - Advanced security against social engineering attacks
-- **Liveness Detection** - Prevents replay attacks and spoofing attempts
-- **Enterprise-Ready** - Scalable architecture for business deployments
-- **Cross-Platform** - Works on web, mobile, and desktop applications
-- **Privacy-First** - Local processing with optional cloud integration
+This refactored MVP implements a **professional, investor-ready system** with 5 distinct security layers:
 
-## 📋 Table of Contents
+```
+LAYER 1: Input Layer          → Capture gesture, typing, touch, session data
 
-- [Features](#-features)
-- [Architecture](#-architecture)
-- [Installation](#-installation)
+LAYER 2: SFAM Integration     → Extract irreversible biometric hashes
+
+LAYER 3: Behavioral Model     → Build user profiles with baselines
+
+LAYER 4: RLFS Module          → Detect anomalies (multi-signal analysis)
+
+LAYER 5: S-ADR Module         → Make adaptive security decisions
+```
+
+**Result**: Detect fraud through behavior, not just credentials ✅
+
+## ⚡ Quick Start (5 Minutes)
+
+**Read These First:**
+
+1. 📖 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) - What's been implemented
+2. 🏗️ [REFACTORING_ARCHITECTURE.md](REFACTORING_ARCHITECTURE.md) - Complete architecture spec
+3. 🎬 [DEMO_AND_RUNBOOK.md](DEMO_AND_RUNBOOK.md) - How to test with 3 scenarios
+4. 🧪 [TESTING_GUIDE.md](TESTING_GUIDE.md) - Step-by-step validation
+5. 📊 [DASHBOARD_GUIDE.md](DASHBOARD_GUIDE.md) - Dashboard usage & interpretation
+
+**Start the System (4 terminals):**
+
+```bash
+# Terminal 1: MongoDB (or use MongoDB Atlas)
+mongod
+
+# Terminal 2: Python SFAM Service
+cd sfam_service && python main.py
+# Should see: "Uvicorn running on http://127.0.0.1:8000"
+
+# Terminal 3: Node.js Backend API Server
+cd secuadr-api-server && npm install && npm run dev
+# Should see: "✅ SecuADR API Server running on http://localhost:5000"
+
+# Terminal 4: React Frontend
+cd pattern-login && npm install && npm run dev
+# Should see: "Local: http://localhost:5173"
+```
+
+Then open: **http://localhost:5173**
+
+**You'll see:**
+
+- 🔐 **Login Page** - Draw your gesture to authenticate
+- 📋 **Enrollment Flow** - Create account with gesture baseline (3 samples)
+- 📊 **Dashboard** - View sessions, risk metrics, drift detection, 5-layer analysis
+
+## 🚀 Key Features
+
+- **Passwordless Authentication** - Gesture-based with behavioral verification
+- **Enrollment Flow** - User-friendly setup with 3-sample gesture baseline
+- **Interactive Dashboard** - View sessions, risk scores, drift detection, 5-layer analysis
+- **SFAM-Powered Biometrics** - Irreversible, cancellable biometric hashes
+- **Anomaly Detection (RLFS)** - Multi-signal fraud detection engine
+- **Adaptive Security (S-ADR)** - Context-aware risk assessment & decision making
+- **Realtime Risk Metrics** - Session history with 5-layer outputs
+- **Persistent Audit Trail** - Every authentication logged and analyzed to MongoDB
+- **Investor-Ready Demo** - 3 scenarios showing fraud detection in action
+- **Professional Architecture** - Clean, modularized, well-documented code
+- **Enterprise Database** - MongoDB for scalability & compliance
+- **Privacy-First** - No raw biometric data stored, only irreversible hashes
+- **Anti-Spoofing** - Detects pattern mimicry vs. behavioral attacks
 - [Quick Start](#-quick-start)
 - [API Documentation](#-api-documentation)
 - [Training Your Own Models](#-training-your-own-models)
@@ -38,7 +92,7 @@ SecuADR is a breakthrough authentication system that eliminates passwords throug
 
 ## 🏗️ Architecture
 
-`SecuADR consists of several integrated components:` 
+`SecuADR consists of several integrated components:`
 
 ├── server/ # Core authentication server (Node.js)  
 ├── secuadr-api-server/ # REST API service  
@@ -64,18 +118,18 @@ SecuADR is a breakthrough authentication system that eliminates passwords throug
 
 ### Clone Repository
 
-- git clone  [https://github.com/Lumine8/SecuADR.git](https://github.com/Lumine8/SecuADR.git)  
+- git clone [https://github.com/Lumine8/SecuADR.git](https://github.com/Lumine8/SecuADR.git)
 - cd SecuADR
 
- `Note: This repository uses Git LFS for large model files. Make sure to run:` 
+`Note: This repository uses Git LFS for large model files. Make sure to run:`
 
 `git lfs pull`
 
- Install Dependencies 
+Install Dependencies
 
 # Install server dependencies
 
-`cd server` 
+`cd server`
 `npm install`
 
 # Install API server dependencies
@@ -95,22 +149,23 @@ SecuADR is a breakthrough authentication system that eliminates passwords throug
 
 ## 🚦 Quick Start
 
-### 1. Start the Authentication Server` 
+### 1. Start the Authentication Server`
 
 `cd server  `
 `npm start`
 
- ### 2. Start the API Server` 
+### 2. Start the API Server`
 
 cd secuadr-api-server  
 npm run dev
 
-### 3. Launch the Web Application` 
+### 3. Launch the Web Application`
 
 `cd secuadr-app  `
 `npm start`
 
 ### 4. Open Browser
+
 Navigate to `http://localhost:3000` to see SecuADR in action.
 
 ## 📚 API Documentation
@@ -120,46 +175,46 @@ Navigate to `http://localhost:3000` to see SecuADR in action.
 `POST /api/authenticate  `
 `Content-Type: application/json`
 
-    {  
-    "gestureData": [x, y, timestamp...],  
-    "userId": "user123",  
-    "sessionId": "session456"  
+    {
+    "gestureData": [x, y, timestamp...],
+    "userId": "user123",
+    "sessionId": "session456"
     }
 
 ### Response
 
-    {  
-    "success": true,  
-    "authenticated": true,  
-    "confidence": 0.94,  
-    "token": "jwt-token-here",  
-    "expiresIn": 3600  
+    {
+    "success": true,
+    "authenticated": true,
+    "confidence": 0.94,
+    "token": "jwt-token-here",
+    "expiresIn": 3600
     }
 
-### Integration Example` 
+### Integration Example`
 
     import { SecuADR } from 'secuadr-client';
 
-    const secuadr = new SecuADR({  
-    apiUrl: '[https://your-api.com](https://your-api.com/)',  
-    clientId: 'your-client-id'  
+    const secuadr = new SecuADR({
+    apiUrl: '[https://your-api.com](https://your-api.com/)',
+    clientId: 'your-client-id'
     });
 
-    // Authenticate user with gesture  
-    const result = await secuadr.authenticate(gestureData);  
-    if (result.authenticated) {  
-    // User authenticated successfully  
-    console.log('Authentication successful');  
+    // Authenticate user with gesture
+    const result = await secuadr.authenticate(gestureData);
+    if (result.authenticated) {
+    // User authenticated successfully
+    console.log('Authentication successful');
     }
 
 ## 🧠 Training Your Own Models
 
-SecuADR supports custom model training for specific use cases:` 
+SecuADR supports custom model training for specific use cases:`
 
-    cd training  
+    cd training
     python train_model.py --dataset ./data --epochs 100 --batch-size 32
 
-### Dataset Format 
+### Dataset Format
 
 data/  
 ├── user1/  
@@ -173,13 +228,12 @@ data/
 
 # training/config.py
 
-    MODEL_CONFIG = {  
-    'input_shape': (100, 2), # gesture points (x, y)  
-    'hidden_layers': ,  
-    'dropout_rate': 0.3,  
-    'learning_rate': 0.001  
+    MODEL_CONFIG = {
+    'input_shape': (100, 2), # gesture points (x, y)
+    'hidden_layers': ,
+    'dropout_rate': 0.3,
+    'learning_rate': 0.001
     }
-
 
 ## 🔒 Security
 
@@ -192,6 +246,7 @@ SecuADR implements multiple security layers:
 - **Privacy-First**: Optional local-only processing mode
 
 ### Security Audit
+
 For security vulnerabilities, please email: atlas.adr11@gmail.com
 
 ## 🤝 Contributing
@@ -204,7 +259,7 @@ We welcome contributions from the community:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-### Development Setup`` 
+### Development Setup``
 
 # Install development dependencies
 
@@ -225,6 +280,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🏆 Achievements & Milestones
 
 ### 🎯 Project Milestones
+
 - ✅ **Breakthrough Innovation** - First AI-powered gesture authentication platform
 - ✅ **Sub-Second Authentication** - Achieved <1 second login times with 94%+ accuracy
 - ✅ **Enterprise Security** - Implemented anti-phishing and liveness detection
@@ -232,6 +288,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - ✅ **Production-Ready** - Scalable architecture with comprehensive API
 
 ### 🔬 Technical Achievements
+
 - 🧠 **Advanced CNN Model** - Custom neural network for gesture recognition
 - 🚀 **Real-Time Processing** - Live gesture analysis and authentication
 - 🔒 **Zero-Knowledge Architecture** - Privacy-first design with local processing
@@ -239,6 +296,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - ⚡ **Performance Optimized** - Sub-millisecond gesture detection
 
 ### 🌟 Recognition & Validation
+
 - 🎓 **Academic Foundation** - Built on cutting-edge ML research
 - 🔐 **Security Focused** - Comprehensive threat modeling and protection
 - 🏢 **Enterprise Interest** - Targeting Microsoft partnership opportunities
@@ -246,12 +304,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🌍 **Global Impact** - Solving universal authentication challenges
 
 ### 📊 Development Stats
+
 ![Commits](https://img.shields.io/github/commit-activity/m/Lumine8/SecuADR?style=for-the-badge&logo=git&logoColor=white&label=COMMITS)
 ![Code Size](https://img.shields.io/github/languages/code-size/Lumine8/SecuADR?style=for-the-badge&logo=github&logoColor=white&label=CODE%20SIZE)
 ![Contributors](https://img.shields.io/github/contributors/Lumine8/SecuADR?style=for-the-badge&logo=github&logoColor=white&label=CONTRIBUTORS)
 ![Last Commit](https://img.shields.io/github/last-commit/Lumine8/SecuADR?style=for-the-badge&logo=git&logoColor=white&label=LAST%20COMMIT)
 
 ### 🎖️ Technology Badges
+
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
@@ -262,6 +322,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
 
 ### 🏅 Security Certifications
+
 - 🛡️ **OWASP Compliant** - Following top 10 security practices
 - 🔐 **End-to-End Encryption** - Military-grade data protection
 - 🔍 **Penetration Tested** - Comprehensive security validation
@@ -269,14 +330,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🌐 **SOC 2 Type II Ready** - Enterprise security standards
 
 ### 🚀 Performance Achievements
-| Metric | Achievement |
-|--------|------------|
-| **Authentication Speed** | < 1 second |
-| **Accuracy Rate** | 94%+ |
-| **False Positive Rate** | < 0.1% |
-| **Uptime** | 99.9% |
-| **Response Time** | < 50ms |
-| **Scalability** | 10K+ concurrent users |
+
+| Metric                   | Achievement           |
+| ------------------------ | --------------------- |
+| **Authentication Speed** | < 1 second            |
+| **Accuracy Rate**        | 94%+                  |
+| **False Positive Rate**  | < 0.1%                |
+| **Uptime**               | 99.9%                 |
+| **Response Time**        | < 50ms                |
+| **Scalability**          | 10K+ concurrent users |
 
 ### 🎯 Innovation Highlights
 
@@ -303,6 +365,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Contact
 
 **Sankar Gopan** - Creator & Lead Developer
+
 - Email: sankargopan1@gmail.com
 - Project Email: atlas.adr11@gmail.com
 - GitHub: [@Lumine8](https://github.com/Lumine8)
@@ -315,6 +378,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Beta testers and early adopters
 
 ---
-**SecuADR** - Making authentication secure, seamless, and passwordless.`
-**SecuADR** - Making authentication secure, seamless, and passwordless.`
 
+**SecuADR** - Making authentication secure, seamless, and passwordless.`
+**SecuADR** - Making authentication secure, seamless, and passwordless.`

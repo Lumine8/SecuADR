@@ -1,0 +1,162 @@
+export const mockDataset = {
+  users: [
+    {
+      id: "u1",
+      username: "lucid",
+      avg_trust_score: 0.91,
+      risk_level: "low",
+      last_activity: "2026-04-02T11:10:00.000Z",
+      session_count: 32,
+    },
+    {
+      id: "u2",
+      username: "nora",
+      avg_trust_score: 0.64,
+      risk_level: "medium",
+      last_activity: "2026-04-02T10:21:00.000Z",
+      session_count: 24,
+    },
+    {
+      id: "u3",
+      username: "shadow",
+      avg_trust_score: 0.22,
+      risk_level: "high",
+      last_activity: "2026-04-02T09:52:00.000Z",
+      session_count: 18,
+    },
+  ],
+  userDetails: {
+    u1: {
+      user: {
+        id: "u1",
+        username: "lucid",
+        baseline_vector: [0.32, 0.56, 0.12, 0.19, 0.09, 0.45, 0.88],
+        variance_vector: [0.02, 0.03, 0.01, 0.01, 0.02, 0.03, 0.04],
+        drift_state: "stable",
+      },
+      sessions: [],
+      timeline: [
+        {
+          index: 1,
+          timestamp: "2026-04-02T08:00:00.000Z",
+          trust_score: 0.92,
+          anomaly_score: 0.08,
+          cosine_similarity: 0.96,
+          decision: "allow",
+        },
+        {
+          index: 2,
+          timestamp: "2026-04-02T09:00:00.000Z",
+          trust_score: 0.9,
+          anomaly_score: 0.1,
+          cosine_similarity: 0.94,
+          decision: "allow",
+        },
+        {
+          index: 3,
+          timestamp: "2026-04-02T10:00:00.000Z",
+          trust_score: 0.88,
+          anomaly_score: 0.12,
+          cosine_similarity: 0.92,
+          decision: "allow",
+        },
+      ],
+      risk_logs: [],
+    },
+  },
+  sessions: [
+    {
+      _id: "s1",
+      timestamp: "2026-04-02T09:12:00.000Z",
+      user_id: "u1",
+      rlfs_output: { anomaly_score: 0.12, detected_anomalies: ["speed"] },
+      sadr_output: { recommended_action: "allow", risk_level: "LOW" },
+    },
+    {
+      _id: "s2",
+      timestamp: "2026-04-02T10:12:00.000Z",
+      user_id: "u2",
+      rlfs_output: {
+        anomaly_score: 0.44,
+        detected_anomalies: ["timing", "shape"],
+      },
+      sadr_output: {
+        recommended_action: "allow_with_warning",
+        risk_level: "MEDIUM",
+      },
+    },
+    {
+      _id: "s3",
+      timestamp: "2026-04-02T11:12:00.000Z",
+      user_id: "u3",
+      rlfs_output: {
+        anomaly_score: 0.84,
+        detected_anomalies: ["speed", "tortuosity"],
+      },
+      sadr_output: { recommended_action: "block", risk_level: "HIGH" },
+    },
+  ],
+  metrics: [
+    {
+      index: 1,
+      timestamp: "2026-04-02T08:00:00.000Z",
+      trust_score: 0.92,
+      anomaly_score: 0.08,
+      cosine_similarity: 0.96,
+      euclidean_distance: 0.11,
+      hamming_distance: 0.04,
+    },
+    {
+      index: 2,
+      timestamp: "2026-04-02T09:00:00.000Z",
+      trust_score: 0.67,
+      anomaly_score: 0.33,
+      cosine_similarity: 0.76,
+      euclidean_distance: 0.49,
+      hamming_distance: 0.18,
+    },
+    {
+      index: 3,
+      timestamp: "2026-04-02T10:00:00.000Z",
+      trust_score: 0.21,
+      anomaly_score: 0.79,
+      cosine_similarity: 0.31,
+      euclidean_distance: 1.08,
+      hamming_distance: 0.56,
+    },
+  ],
+  risk: [
+    {
+      _id: "r1",
+      timestamp: "2026-04-02T09:45:00.000Z",
+      severity: "high",
+      event_type: "anomaly_detected",
+      action_taken: "CHALLENGE",
+      risk_indicators: { feature_alerts: ["speed anomaly"] },
+    },
+    {
+      _id: "r2",
+      timestamp: "2026-04-02T10:35:00.000Z",
+      severity: "critical",
+      event_type: "fraud_suspected",
+      action_taken: "BLOCK",
+      risk_indicators: {
+        feature_alerts: ["shape mismatch", "timing inconsistency"],
+      },
+    },
+  ],
+  flagged: [
+    {
+      _id: "r1",
+      timestamp: "2026-04-02T09:45:00.000Z",
+      severity: "high",
+      reason: "speed anomaly",
+    },
+    {
+      _id: "r2",
+      timestamp: "2026-04-02T10:35:00.000Z",
+      severity: "critical",
+      reason: "shape mismatch",
+    },
+  ],
+};

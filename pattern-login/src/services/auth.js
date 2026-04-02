@@ -1,80 +1,171 @@
 import axios from "axios";
-
-// FIXED: Use correct port 3000 for API server
-const API_BASE_URL = "http://localhost:3000/api/v1";
-const API_KEY = "demo";
+import API_BASE_URL from "../config/api";
 
 class AuthService {
-  // Quick authentication using the new API
-  static async quickAuthenticate(gestureData) {
+  /**
+   * Enroll a new user
+   */
+  static async enrollUser(userId, gestureData) {
     try {
+      const formattedGesture = gestureData.map((point) => ({
+        x: Math.round(point.x || point.X || 0),
+        y: Math.round(point.y || point.Y || 0),
+        timestamp: point.timestamp || Date.now(),
+      }));
+
+      const response = await axios.post(`${API_BASE_URL}/api/auth/enroll`, {
+        user_id: userId,
+        gesture: formattedGesture,
+      });
+
+      return {
+        success: response.data.success,
+        message: response.data.message,
+        profile: response.data.profile,
+      };
+    } catch (error) {
+      console.error("Enrollment error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Authenticate user with gesture
+   */
+  static async authenticate(userId, gestureData, deviceContext = {}) {
+    try {
+      const formattedGesture = gestureData.map((point) => ({
+        x: Math.round(point.x || point.X || 0),
+        y: Math.round(point.y || point.Y || 0),
+        timestamp: point.timestamp || Date.now(),
+      }));
+
       const response = await axios.post(
-        `${API_BASE_URL}/auth/quick-auth`,
+        `${API_BASE_URL}/api/auth/gesture`,
         {
-          gestureData: gestureData.map((point) => ({
-            x: Math.round(point.x || point.X || 0),
-            y: Math.round(point.y || point.Y || 0),
-            timestamp: point.timestamp || Date.now(),
-          })),
+          user_id: userId,
+          gesture: formattedGesture,
+          device_context: {
+            is_new: deviceContext.is_new || false,
+            location_is_new: deviceContext.location_is_new || false,
+            is_after_hours: deviceContext.is_after_hours || false,
+          },
         },
         {
           headers: {
             "Content-Type": "application/json",
-            "X-API-Key": API_KEY,
-          },
-        }
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error("Auth Service Error:", error);
-      throw new Error(`Authentication failed: ${error.message}`);
-    }
-  }
-
-  // Full authentication with user management
-  static async authenticate(userId, gestureData, metadata = {}) {
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/authenticate`,
-        {
-          userId,
-          gestureData: gestureData.map((point) => ({
-            x: Math.round(point.x || point.X || 0),
-            y: Math.round(point.y || point.Y || 0),
-            timestamp: point.timestamp || Date.now(),
-          })),
-          metadata: {
-            platform: "web",
-            deviceType: "desktop",
-            ...metadata,
           },
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "X-API-Key": API_KEY,
-          },
-        }
       );
 
-      return response.data;
+      return {
+        success: response.data.success,
+        decision: response.data.decision,
+        risk_level: response.data.risk_level,
+        confidence: response.data.confidence,
+        token: response.data.token,
+        message: response.data.message,
+        requires_challenge: response.data.requires_challenge,
+        challenge_method: response.data.challenge_method,
+        session_id: response.data.session_id,
+      };
     } catch (error) {
-      console.error("Auth Service Error:", error);
-      throw new Error(`Authentication failed: ${error.message}`);
+      console.error("Authentication error:", error);
+      return {
+        success: false,
+        decision: "BLOCK",
+        message: error.response?.data?.message || error.message,
+        error: error.message,
+      };
     }
   }
 
-  // Check API health
+  /**
+   * Check API health
+   */
   static async checkHealth() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/health`, {
-        headers: { "X-API-Key": API_KEY },
-      });
+      const response = await axios.get(`${API_BASE_URL}/health`);
+      return {
+        status: response.data.status,
+        database: response.data.services?.database,
+        timestamp: response.data.timestamp,
+      };
+    } catch (error) {
+      console.error("Health check error:", error);
+      return {
+        status: "unavailable",
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Get session details for dashboard
+   */
+  static async getSessions(userId, limit = 50) {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/dashboard/sessions`,
+        {
+          params: { user_id: userId, limit },
+        },
+      );
       return response.data;
     } catch (error) {
-      console.error("Health Check Error:", error);
-      return { status: "unhealthy", error: error.message };
+      console.error("Get sessions error:", error);
+      return { sessions: [], error: error.message };
+    }
+  }
+
+  static async analyzeBehavior(payload) {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/trust/analyze`,
+        payload,
+      );
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+      };
+    }
+  }
+
+  static async getTrustTimeline(username, limit = 30) {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/trust/timeline/${username}`,
+        {
+          params: { limit },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+        timeline: [],
+      };
+    }
+  }
+
+  static async getScenarioMock(scenario) {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/trust/mock/${scenario}`,
+      );
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+      };
     }
   }
 }

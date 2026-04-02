@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const SfamSchema = new mongoose.Schema(
   {
@@ -13,6 +13,27 @@ const SfamSchema = new mongoose.Schema(
     salt: {
       type: String,
       required: true,
+    },
+    confidence: {
+      type: Number,
+      default: 0,
+    },
+    enrollmentStats: {
+      time: Number,
+      speed: Number,
+      speed_var: Number,
+      max_speed: Number,
+      accel: Number,
+      stability: Number,
+      duration: Number,
+      tortuosity: Number,
+      curvature: Number,
+      shape: Number,
+      rhythm: Number,
+    },
+    shapeSignature: {
+      type: [[Number]],
+      default: undefined,
     },
     enrolledAt: {
       type: Date,
@@ -42,7 +63,22 @@ const UserSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Optional metadata
+    // User Profile
+    profile: {
+      first_name: String,
+      last_name: String,
+      organization: String,
+    },
+
+    // Enrollment Status
+    enrollment_status: {
+      type: String,
+      enum: ["pending", "enrolled", "suspended"],
+      default: "pending",
+    },
+    enrolled_at: Date,
+
+    // Metadata
     createdAt: {
       type: Date,
       default: Date.now,
@@ -60,7 +96,8 @@ const UserSchema = new mongoose.Schema(
   },
   {
     collection: "users",
+    timestamps: true,
   },
 );
 
-module.exports = mongoose.model("User", UserSchema);
+export default mongoose.model("User", UserSchema);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import API_BASE_URL from "../config/api";
 
 const GestureRecognition = ({ username, onPatternComplete }) => {
   const [feedback, setFeedback] = useState("");
@@ -10,9 +11,9 @@ const GestureRecognition = ({ username, onPatternComplete }) => {
   useEffect(() => {
     const checkCNNStatus = async () => {
       try {
-        const response = await axios.get(
-          "http://localhost:5000/api/cnn-status"
-        );
+        const response = await axios.get(`${API_BASE_URL}/api/cnn-status`, {
+          timeout: 5000,
+        });
         if (
           response.data.success &&
           response.data.currentMode === "cnn_leading_adaptive_ai"
@@ -24,7 +25,10 @@ const GestureRecognition = ({ username, onPatternComplete }) => {
           console.log("⚠️ GestureRecognition: Using fallback mode");
         }
       } catch (error) {
-        console.error("❌ GestureRecognition: CNN status check failed:", error);
+        console.error(
+          "❌ GestureRecognition: Backend not reachable for CNN status:",
+          error.message,
+        );
         setCnnStatus("offline");
       }
     };
@@ -56,8 +60,9 @@ const GestureRecognition = ({ username, onPatternComplete }) => {
 
       // Use the main authentication endpoint instead of direct CNN predict
       const response = await axios.post(
-        "http://localhost:5000/api/authenticate",
-        payload
+        `${API_BASE_URL}/api/authenticate`,
+        payload,
+        { timeout: 10000 },
       );
 
       console.log("🔍 Authentication Response:", response.data);
@@ -124,18 +129,6 @@ const GestureRecognition = ({ username, onPatternComplete }) => {
       <div className='hidden-status' data-cnn-status={cnnStatus}>
         CNN Status: {cnnStatus}
       </div>
-
-      {/* CSS for spinner animation */}
-      <style jsx>{`
-        @keyframes spin {
-          0% {
-            transform: rotate(0deg);
-          }
-          100% {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
     </div>
   );
 };
@@ -155,10 +148,9 @@ const GestureRecognitionService = {
 
       console.log("🔍 GestureRecognitionService: Authenticating pattern");
 
-      const response = await axios.post(
-        "http://localhost:5000/api/authenticate",
-        payload
-      );
+      const response = await axios.post(`${API_BASE_URL}/api/authenticate`, payload, {
+        timeout: 10000,
+      });
 
       if (
         response.data &&
@@ -193,7 +185,7 @@ const GestureRecognitionService = {
 
   async checkCNNStatus() {
     try {
-      const response = await axios.get("http://localhost:5000/api/cnn-status");
+      const response = await axios.get(`${API_BASE_URL}/api/cnn-status`, { timeout: 5000 });
       return {
         available:
           response.data.success &&

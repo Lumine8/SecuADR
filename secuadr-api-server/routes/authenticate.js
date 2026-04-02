@@ -1,36 +1,273 @@
-const express = require("express");
-const router = express.Router();
-const User = require("../models/User");
-const admin = require("../firebase");
-const { verifySFAM, checkSFAMHealth } = require("../utils/sfamClient");
+import express from "express";
+import mongoose from "mongoose";
+import User from "../models/User.js";
+import Session from "../models/Session.js";
+import { verifySFAM, checkSFAMHealth } from "../utils/sfamClient.js";
 
-/* ==========================================================================
-   AUTHENTICATION ROUTE - SFAM HYBRID ENGINE
-   ========================================================================== */
+const router = express.Router();
+
+async function persistAuthAttempt({
+  user,
+  pattern,
+  sfamHealthy,
+  sfamResult,
+  possibleAttack,
+  authenticated,
+  token,
+  reason,
+  deviceFingerprint,
+}) {
+  try {
+    const rawPoints = Array.isArray(pattern)
+      ? pattern.map((point, idx) => ({
+          x: point.X,
+          y: point.Y,
+          timestamp:
+            Number(point.T ?? point.t ?? point.timestamp ?? idx) || idx,
+        }))
+      : [];
+
+    const startTs = rawPoints.length ? rawPoints[0].timestamp : 0;
+    const endTs = rawPoints.length
+      ? rawPoints[rawPoints.length - 1].timestamp
+      : 0;
+    const durationMs = Math.max(endTs - startTs, 0);
+
+    await Session.create({
+      user_id: user._id,
+      timestamp: new Date(),
+      input: {
+        gesture: {
+          raw_points: rawPoints,
+          duration_ms: durationMs,
+        },
+        session_context: {
+          user_agent:
+            typeof deviceFingerprint === "object"
+              ? deviceFingerprint.userAgent
+              : undefined,
+        },
+      },
+      sfam_output: {
+        confidence: sfamResult?.confidence || 0,
+        hamming_distance: sfamResult?.hash_distance,
+        reason: sfamResult?.reason,
+        behavior_metrics: sfamResult?.metrics,
+      },
+      sadr_output: {
+        decision: authenticated ? "ALLOW" : "BLOCK",
+        risk_level: authenticated ? "LOW" : "HIGH",
+        confidence: sfamResult?.confidence || 0,
+        reason: sfamResult?.reason || reason,
+        recommended_action: authenticated ? "allow" : "block",
+        trust_factors: sfamResult?.reason ? [sfamResult.reason] : [],
+      },
+      authentication: {
+        status: authenticated ? "success" : "failed",
+        token: authenticated ? token : undefined,
+        error_message: authenticated ? undefined : reason,
+      },
+      metadata: {
+        api_version: "2.0",
+        sfam_service_healthy: sfamHealthy,
+        sfam_reason: sfamResult?.reason,
+        possible_attack: possibleAttack || {
+          flag: false,
+          score: 0,
+          reasons: [],
+        },
+        is_simulated_attempt: Boolean(deviceFingerprint?.attackSimulation),
+      },
+    });
+  } catch (error) {
+    console.error(`⚠️ Failed to persist session log: ${error.message}`);
+  }
+}
+
+function toFiniteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function getBehaviorDeltas(metrics = {}) {
+  const keys = [
+    "dur_diff",
+    "spd_diff",
+    "spv_diff",
+    "tort_diff",
+    "curv_diff",
+    "rhythm_diff",
+    "shape_stat_diff",
+    "shp_diff",
+  ];
+
+  return keys
+    .map((k) => toFiniteNumber(metrics?.[k]))
+    .filter((v) => v !== null);
+}
+
+async function detectPossibleAttack({ userId, sfamResult, authenticated }) {
+  const reasons = [];
+  let score = 0;
+
+  const currentDistance = toFiniteNumber(sfamResult?.hash_distance);
+  const metricDiffs = getBehaviorDeltas(sfamResult?.metrics);
+  const avgMetricDelta = metricDiffs.length
+    ? metricDiffs.reduce((sum, v) => sum + v, 0) / metricDiffs.length
+    : null;
+
+  // Incorporate SFAM-local heuristics first.
+  if (sfamResult?.possible_attack?.flag) {
+    reasons.push(...(sfamResult.possible_attack.reasons || ["sfam_suspicion"]));
+    score += 0.35;
+  }
+
+  const recent = await Session.find({ user_id: userId })
+    .sort({ timestamp: -1 })
+    .limit(20)
+    .lean();
+
+  const lastSuccess = recent.find(
+    (s) => s?.authentication?.status === "success",
+  );
+  const lastSuccessDistance = toFiniteNumber(
+    lastSuccess?.sfam_output?.hamming_distance,
+  );
+
+  if (
+    authenticated &&
+    currentDistance !== null &&
+    lastSuccessDistance !== null &&
+    currentDistance < 0.035 &&
+    lastSuccessDistance < 0.035 &&
+    Math.abs(currentDistance - lastSuccessDistance) < 0.003 &&
+    avgMetricDelta !== null &&
+    avgMetricDelta < 0.04
+  ) {
+    reasons.push("possible_attack: suspiciously_perfect_repeat");
+    score += 0.45;
+  }
+
+  const failedRecent = recent
+    .filter((s) => s?.authentication?.status === "failed")
+    .slice(0, 5)
+    .map((s) => toFiniteNumber(s?.sfam_output?.hamming_distance))
+    .filter((v) => v !== null);
+
+  if (failedRecent.length >= 3) {
+    const oldestToNewest = [...failedRecent].reverse();
+    const deltas = oldestToNewest
+      .slice(1)
+      .map((v, idx) => oldestToNewest[idx] - v);
+    const meanDelta = deltas.reduce((sum, v) => sum + v, 0) / deltas.length;
+    const improvingSteps = deltas.filter((d) => d > 0.01).length;
+
+    if (meanDelta > 0.008 && improvingSteps >= 2) {
+      reasons.push("possible_attack: gradual_convergence_pattern");
+      score += 0.4;
+    }
+  }
+
+  if (
+    avgMetricDelta !== null &&
+    avgMetricDelta < 0.02 &&
+    currentDistance !== null &&
+    currentDistance < 0.02
+  ) {
+    reasons.push("possible_attack: over_consistent_behavior");
+    score += 0.25;
+  }
+
+  const uniqueReasons = [...new Set(reasons)];
+  const finalScore = Math.min(1, Number(score.toFixed(3)));
+
+  return {
+    flag: uniqueReasons.length > 0 && finalScore >= 0.35,
+    score: finalScore,
+    reasons: uniqueReasons,
+  };
+}
+
+/**
+ * POST /authenticate
+ *
+ * Authenticates a user using their gesture pattern.
+ *
+ * Request body:
+ * {
+ *   username: string,
+ *   pattern: [{X: number, Y: number, ID: number}, ...],  // Raw gesture points from frontend
+ *   sessionId?: string,
+ *   deviceFingerprint?: string
+ * }
+ *
+ * Response on success:
+ * {
+ *   success: true,
+ *   authenticated: true,
+ *   username: string,
+ *   token: string,          // JWT token for authenticated session
+ *   method: string,
+ *   confidence: number,     // 0.0 - 1.0
+ *   message: string
+ * }
+ *
+ * Response on failure:
+ * {
+ *   success: false,
+ *   authenticated: false,
+ *   message: string,
+ *   confidence: number
+ * }
+ */
 router.post("/", async (req, res) => {
   try {
     // 1. EXTRACT PAYLOAD
     const {
       username,
-      gesture, // { spatial: [[x,y]...], behavioral: [[dx,dy,v,a]...] }
-      cnnConfidence, // 0.0 - 1.0 (from Client TFLite)
-      dollarScore, // 0.0 - 1.0 (from Client $1 Recognizer)
-      metadata, // { drawingTime, touchEvents, etc. }
+      pattern, // Raw gesture points from frontend: [{X, Y, ID}]
+      sessionId,
+      deviceFingerprint,
     } = req.body;
 
     // 2. INPUT VALIDATION
-    if (!username) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Username is required" });
-    }
-
-    // Protect against malformed gesture objects causing crashes
-    if (gesture && (!gesture.spatial || !gesture.behavioral)) {
-      console.warn(`⚠️ Malformed gesture payload received from: ${username}`);
+    if (!username || typeof username !== "string") {
       return res.status(400).json({
         success: false,
-        message: "Invalid gesture payload: missing spatial or behavioral data",
+        message: "Username is required and must be a string",
+      });
+    }
+
+    if (!pattern || !Array.isArray(pattern) || pattern.length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid gesture pattern: minimum 5 points required",
+      });
+    }
+
+    // Validate gesture points have required properties
+    const validPattern = pattern.every(
+      (point) =>
+        typeof point.X === "number" &&
+        typeof point.Y === "number" &&
+        typeof point.ID === "number",
+    );
+
+    if (!validPattern) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid gesture points: each point must have X, Y, ID properties",
+      });
+    }
+
+    console.log(`📝 Auth attempt for user: ${username}`);
+
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        authenticated: false,
+        message: "Database unavailable. Authentication cannot proceed.",
       });
     }
 
@@ -38,311 +275,185 @@ router.post("/", async (req, res) => {
     const user = await User.findOne({ username });
     if (!user) {
       // Return generic error to prevent user enumeration
-      return res
-        .status(401)
-        .json({ success: false, message: "Authentication failed" });
-    }
-
-    // 4. CHECK SYSTEM HEALTH
-    // Refinement A: Pass cnnConfidence to dynamically check if client side AI ran
-    const aiEngineStatus = await checkAIEngineStatus(cnnConfidence);
-
-    /* ==========================================================================
-       🔒 SECURITY CHECK: DOWNGRADE ATTACK PREVENTION
-       If the user is enrolled in SFAM and the system is healthy, 
-       we MUST receive gesture data. We cannot allow fallback to weak auth.
-       ========================================================================== */
-    const isEnrolled = user.sfam && user.sfam.hash && user.sfam.hash.length > 0;
-    const isSystemHealthy = aiEngineStatus.sfamAvailable;
-    const isDataMissing = !gesture;
-
-    if (isEnrolled && isSystemHealthy && isDataMissing) {
-      console.warn(
-        `🚨 Security Alert: Downgrade attack blocked for ${username}`,
-      );
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "High-Security Mode Active: Gesture data is required.",
+        message: "Authentication failed",
       });
     }
 
-    // 5. RUN SFAM VERIFICATION
-    let sfamResult = { auth_pass: false, hamming_distance: 1.0, ran: false };
+    console.log(
+      `✅ User found: ${username}, SFAM enrolled: ${!!user.sfam?.hash}`,
+    );
 
-    if (isEnrolled && isSystemHealthy && gesture) {
+    // 4. CHECK SFAM AVAILABILITY
+    const sfamHealthy = await checkSFAMHealth();
+    console.log(
+      `🔌 SFAM Service Status: ${sfamHealthy ? "HEALTHY" : "UNAVAILABLE"}`,
+    );
+
+    // 5. RUN SFAM VERIFICATION
+    let sfamResult = {
+      is_match: false,
+      hash_distance: 1.0,
+      confidence: 0,
+    };
+    let sfamSucceeded = false;
+
+    // Only run SFAM if user is enrolled and service is available
+    if (user.sfam && user.sfam.hash && sfamHealthy) {
       try {
+        console.log(`🔍 Running SFAM verification for ${username}...`);
+
+        // Call verifySFAM with raw gesture points
+        // The sfamClient will handle transformation to spatial/behavioral data
         sfamResult = await verifySFAM(
           {
-            spatial: gesture.spatial,
-            behavioral: gesture.behavioral,
+            points: pattern, // Will be transformed by sfamClient
           },
           {
             sfam_hash: user.sfam.hash,
-            seed: user.sfam.seed,
-            salt: user.sfam.salt,
+            sfam_seed: user.sfam.seed,
+            sfam_salt: user.sfam.salt,
+            enrollment_stats: user.sfam.enrollmentStats,
+            shape_signature: user.sfam.shapeSignature,
           },
         );
-        sfamResult.ran = true;
+
+        sfamSucceeded = sfamResult.is_match === true;
+
+        console.log(
+          `✅ SFAM Result: ${sfamSucceeded ? "MATCH" : "MISMATCH"} | Distance: ${sfamResult.hash_distance?.toFixed(3) || "N/A"} | Confidence: ${sfamResult.confidence?.toFixed(3) || "N/A"}`,
+        );
       } catch (err) {
-        console.error("⚠️ SFAM Verification Error:", err.message);
-
-        // Refinement B: Explicit Policy Documentation
-        // CURRENT POLICY: Fail Open (allow fallback to Legacy AI for UX)
-        // NOTE: Switch 'ran' to 'false' if you want to allow fallback.
-        // NOTE: For High-Security (Banks/Gov), return 500 here (Fail Closed).
-        sfamResult.ran = false;
+        console.error(`⚠️ SFAM Verification Error: ${err.message}`);
+        sfamSucceeded = false;
+        // Continue - don't block auth if SFAM fails unexpectedly
       }
+    } else if (!user.sfam?.hash) {
+      console.log(`ℹ️ User not enrolled in SFAM`);
+    } else if (!sfamHealthy) {
+      console.log(`ℹ️ SFAM service unavailable, skipping verification`);
     }
 
-    // 6. CALCULATE THRESHOLDS & SCORES
-    const thresholds = getAdaptiveThresholds(
-      username,
-      metadata,
-      aiEngineStatus,
-    );
-
-    // Define all possible success paths
-    const authPaths = {
-      // Tier 1: SFAM (High Security - Temporal+Spatial)
-      // This is the "Authoritative" check.
-      sfamSecure: sfamResult.ran && sfamResult.auth_pass,
-
-      // Tier 2: Legacy CNN (Medium Security - Spatial Only)
-      excellentCNN: cnnConfidence >= 0.9 && aiEngineStatus.cnnAvailable,
-      personalizedCNN:
-        cnnConfidence >= thresholds.cnn && aiEngineStatus.cnnAvailable,
-
-      // Tier 3: $1 Recognizer (Fallback - Geometric)
-      excellentDollar: dollarScore >= 0.92,
-      personalizedDollar: dollarScore >= thresholds.dollar,
-      dollarFallback: !aiEngineStatus.cnnAvailable && dollarScore >= 0.7,
-
-      // Tier 4: Hybrid Context
-      contextualHybrid:
-        calculateContextualScore(cnnConfidence, dollarScore, metadata) >=
-        thresholds.hybrid,
-    };
-
-    // 7. DECISION MATRIX
-    let success = false;
-    let method = "Unknown";
-    let finalScore = 0.0;
-
-    if (sfamResult.ran) {
-      // --- SFAM IS AUTHORITY ---
-      if (authPaths.sfamSecure) {
-        success = true;
-        method = "SFAM Neural Fusion";
-        // Invert distance for score (0.0 dist = 1.0 score)
-        finalScore = 1.0 - sfamResult.hamming_distance;
-      } else {
-        success = false;
-        method = "Blocked by SFAM Gate";
-        finalScore = 1.0 - sfamResult.hamming_distance;
-      }
-    } else {
-      // --- LEGACY FALLBACK ---
-      success =
-        authPaths.excellentCNN ||
-        authPaths.excellentDollar ||
-        (authPaths.personalizedCNN && authPaths.personalizedDollar) ||
-        authPaths.contextualHybrid ||
-        authPaths.dollarFallback;
-
-      method = aiEngineStatus.cnnAvailable
-        ? "Adaptive Multi-Modal AI"
-        : "Enhanced $1 Recognizer";
-      finalScore = calculateAdaptiveScore(
-        cnnConfidence,
-        dollarScore,
-        metadata,
-        aiEngineStatus,
-      );
-    }
-
-    // Ensure score is valid number
-    finalScore = Number.isFinite(finalScore) ? finalScore : 0.0;
-
-    console.log(`🎯 Auth Decision for ${username}:`, {
-      method,
-      sfamRan: sfamResult.ran,
-      score: (finalScore * 100).toFixed(1) + "%",
-      decision: success ? "✅ ACCEPT" : "❌ REJECT",
+    // 6. GENERATE RESPONSE
+    const possibleAttack = await detectPossibleAttack({
+      userId: user._id,
+      sfamResult,
+      authenticated: sfamSucceeded,
     });
 
-    // 8. RESPONSE GENERATION
-    if (success) {
-      try {
-        // Create Firebase Custom Token with Security Metadata
-        const firebaseToken = await admin.auth().createCustomToken(username, {
-          secuAdrAuth: true,
-          authMethod: method,
-          confidence: finalScore,
-          isSfamVerified: sfamResult.ran,
-          authTime: Date.now(),
-        });
+    if (sfamSucceeded) {
+      // ✅ Authentication successful
+      const token = generateJWTToken(username);
 
-        res.json({
-          success: true,
-          finalScore,
-          method,
-          details: sfamResult.ran
-            ? `SFAM Dist: ${sfamResult.hamming_distance.toFixed(3)}`
-            : `Legacy Score: ${(finalScore * 100).toFixed(1)}%`,
-          firebaseToken,
-          aiEngine: aiEngineStatus,
-          threshold: thresholds.hybrid,
-          improvementTips: [],
-        });
-      } catch (firebaseError) {
-        console.error("❌ Firebase Token Error:", firebaseError);
-        res
-          .status(500)
-          .json({ success: false, message: "Token generation failed" });
-      }
+      console.log(`✅ Authentication SUCCEEDED for ${username}`);
+
+      await persistAuthAttempt({
+        user,
+        pattern,
+        sfamHealthy,
+        sfamResult,
+        possibleAttack,
+        authenticated: true,
+        token,
+        reason: "Authentication successful",
+        deviceFingerprint,
+      });
+
+      return res.status(200).json({
+        success: true,
+        authenticated: true,
+        username,
+        token,
+        method: "SFAM Gesture Recognition",
+        confidence: sfamResult.confidence || 0,
+        message: "Authentication successful",
+        sessionId: sessionId || undefined,
+        sfam: {
+          reason: sfamResult.reason || "Hash match",
+          hash_distance: sfamResult.hash_distance,
+          metrics: sfamResult.metrics || null,
+          possible_attack: possibleAttack,
+        },
+        possible_attack: possibleAttack,
+      });
     } else {
-      // Auth Failed - Send helpful tips
-      res.json({
+      // ❌ Authentication failed
+      console.log(`❌ Authentication FAILED for ${username}`);
+
+      // Check if user is enrolled but failed SFAM
+      const failureReason = user.sfam?.hash
+        ? "Gesture not recognized"
+        : "User not enrolled in gesture authentication";
+
+      await persistAuthAttempt({
+        user,
+        pattern,
+        sfamHealthy,
+        sfamResult,
+        possibleAttack,
+        authenticated: false,
+        token: null,
+        reason: failureReason,
+        deviceFingerprint,
+      });
+
+      return res.status(401).json({
         success: false,
-        finalScore,
-        method,
-        improvementTips: generateImprovementTips(
-          cnnConfidence,
-          dollarScore,
-          metadata,
-          aiEngineStatus,
-          sfamResult,
-        ),
-        threshold: thresholds.hybrid,
-        aiEngine: aiEngineStatus,
+        authenticated: false,
+        username,
+        message: `Authentication failed: ${sfamResult?.reason || failureReason}`,
+        confidence: sfamResult?.confidence || 0,
+        sfam: {
+          reason: sfamResult?.reason || failureReason,
+          hash_distance: sfamResult?.hash_distance,
+          metrics: sfamResult?.metrics || null,
+          possible_attack: possibleAttack,
+        },
+        possible_attack: possibleAttack,
       });
     }
   } catch (error) {
-    console.error("❌ Critical Authentication Error:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    console.error(`❌ Critical Authentication Error: ${error.message}`);
+    console.error(error.stack);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error during authentication",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 });
 
-/* ==========================================================================
-   HELPER FUNCTIONS
-   ========================================================================== */
-
 /**
- * Checks status of all AI sub-systems.
- * Refinement A: Uses actual payload data to verify client-side AI status.
+ * Generates a simple JWT-like token
+ * In production, use jsonwebtoken library with proper signing
  */
-async function checkAIEngineStatus(clientCnnConfidence) {
-  try {
-    // 1. Check SFAM Python Service
-    const isSfamUp = await checkSFAMHealth();
+function generateJWTToken(username) {
+  // PLACEHOLDER: In production, use:
+  // const jwt = require('jsonwebtoken');
+  // return jwt.sign({ username, iat: Date.now() }, process.env.JWT_SECRET, { expiresIn: '24h' });
 
-    // 2. Check CNN (Refinement A)
-    // If the client sent a valid number, the client-side model is "loaded" and working.
-    const cnnModelLoaded = typeof clientCnnConfidence === "number";
+  // For now, return a simple token
+  const header = Buffer.from(
+    JSON.stringify({ alg: "HS256", typ: "JWT" }),
+  ).toString("base64");
+  const payload = Buffer.from(
+    JSON.stringify({
+      username,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
+    }),
+  ).toString("base64");
 
-    return {
-      cnnAvailable: cnnModelLoaded,
-      sfamAvailable: isSfamUp,
-      dollarAvailable: true, // Native JS always available
-      mode: isSfamUp ? "Hybrid Neural" : "Fallback Legacy",
-      message: isSfamUp
-        ? "All systems operational"
-        : "SFAM service unreachable",
-    };
-  } catch (error) {
-    return {
-      cnnAvailable: false,
-      sfamAvailable: false,
-      dollarAvailable: true,
-      mode: "Emergency Fallback",
-      message: "AI Status Check Failed",
-    };
-  }
+  // Mock signature (not cryptographically valid)
+  const signature = Buffer.from(
+    `${username}${Date.now()}${process.env.JWT_SECRET || "default-secret"}`,
+  )
+    .toString("base64")
+    .substring(0, 20);
+
+  return `${header}.${payload}.${signature}`;
 }
 
-/**
- * Calculates dynamic thresholds based on context (Time, User History, etc.)
- */
-function getAdaptiveThresholds(username, metadata, aiStatus) {
-  let thresholds = {
-    cnn: aiStatus.cnnAvailable ? 0.7 : 0.0, // Ignore CNN if unavailable
-    dollar: 0.75,
-    hybrid: aiStatus.cnnAvailable ? 0.65 : 0.7, // Higher threshold if falling back
-  };
-
-  // Example: Relax thresholds slightly at night (users are tired/sloppy)
-  const hour = new Date().getHours();
-  if (hour >= 22 || hour <= 6) {
-    thresholds.dollar -= 0.05;
-    thresholds.hybrid -= 0.05;
-  }
-
-  return thresholds;
-}
-
-/**
- * Computes weighted score for Legacy Mode
- */
-function calculateAdaptiveScore(cnn, dollar, metadata, aiStatus) {
-  const safeCnn = cnn || 0;
-  const safeDollar = dollar || 0;
-
-  if (!aiStatus.cnnAvailable) {
-    // Fallback mode: rely entirely on $1 recognizer
-    return safeDollar;
-  }
-
-  // Full AI mode: Weighted average
-  return safeCnn * 0.6 + safeDollar * 0.4;
-}
-
-/**
- * Boosts score if metadata (drawing speed) is within "human" range
- */
-function calculateContextualScore(cnn, dollar, metadata) {
-  const safeCnn = cnn || 0;
-  const safeDollar = dollar || 0;
-  let baseScore = safeCnn * 0.6 + safeDollar * 0.4;
-
-  // Bonus for natural drawing speed (1s - 8s)
-  if (metadata?.drawingTime > 1000 && metadata?.drawingTime < 8000) {
-    baseScore += 0.03;
-  }
-
-  return Math.min(baseScore, 1.0);
-}
-
-/**
- * Generates user feedback based on which engine rejected them
- */
-function generateImprovementTips(cnn, dollar, metadata, aiStatus, sfamResult) {
-  const tips = [];
-
-  // 1. SFAM Specific Tips
-  if (sfamResult && sfamResult.ran && !sfamResult.auth_pass) {
-    tips.push("🔒 Security Check Failed: Rhythm mismatch.");
-    tips.push("Try to maintain your natural drawing speed and pressure.");
-    return tips; // Return immediately as this is the primary reason
-  }
-
-  // 2. Legacy Tips
-  if (!aiStatus.cnnAvailable && !aiStatus.sfamAvailable) {
-    tips.push("⚠️ Offline Mode: Please draw very precisely.");
-  }
-
-  if ((dollar || 0) < 0.7) {
-    tips.push("📐 Shape Distortion: Watch your corners and proportions.");
-  }
-
-  if (metadata?.drawingTime < 800) {
-    tips.push("⏱️ Too Fast: Slow down slightly for better recognition.");
-  }
-
-  if (metadata?.drawingTime > 10000) {
-    tips.push("💤 Too Slow: Try to draw in one fluid motion.");
-  }
-
-  return tips.slice(0, 2); // Return top 2 tips
-}
-
-module.exports = router;
+export default router;

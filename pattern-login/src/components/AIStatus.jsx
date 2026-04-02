@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import API_BASE_URL from "../config/api";
 
 const AIStatus = () => {
   const [status, setStatus] = useState("Checking AI engine status...");
@@ -13,7 +14,7 @@ const AIStatus = () => {
       console.log("🔍 AIStatus: Checking backend...");
 
       // FIXED: Use correct port 5000 and endpoint /api/cnn-status
-      const response = await axios.get("http://localhost:5000/api/cnn-status", {
+      const response = await axios.get(`${API_BASE_URL}/api/cnn-status`, {
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
@@ -95,7 +96,7 @@ const AIStatus = () => {
     try {
       console.log("🔍 AIStatus: Checking /health endpoint...");
 
-      const response = await axios.get("http://localhost:5000/health", {
+      const response = await axios.get(`${API_BASE_URL}/health`, {
         timeout: 5000,
       });
 
